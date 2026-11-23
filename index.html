@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shroomy Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: cozy, playful, warm, like opening the game's journal
+   IDEA: the site is a walk up Leif's tower at golden hour
+   PICTURE: the game's own sky, town and tower, with Leif waving at the door
+   COLOUR and TYPE: sunset peach and sky, wood brown plaques, cream paper, leaf green; Jua headings, Gaegu body
+   LAYOUT: hero scene, featured game, tower that builds as you scroll, corkboard gallery, about, press, footer garden */
+:root{color-scheme:light;
+ --sky1:#9fbfe8;--sky2:#f6c7a8;--wood:#5c3a20;--wood2:#3e2616;--woodhi:#8a5a33;--cream:#fff1d2;--paper:#fbe8c4;--ink:#3b2414;--leaf:#5f8f4e;--leaf2:#3f6b35;--gold:#ffd66b;--coral:#e8735a;--grass:#4d7a2f}
+*{box-sizing:border-box;min-width:0}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--paper);color:var(--ink);font:19px/1.5 Gaegu,"Comic Sans MS",system-ui,sans-serif;overflow-x:clip}
+img{image-rendering:pixelated}
+h1,h2,h3,.jua{font-family:Jua,system-ui,sans-serif;font-weight:400;line-height:1.08;text-wrap:balance;margin:0}
+h2{font-size:clamp(32px,5vw,48px)}h3{font-size:24px}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 max(5vw,16px)}
+
+/* ---------- wooden things ---------- */
+.plank{background:linear-gradient(var(--woodhi),var(--wood) 18%,var(--wood) 82%,var(--wood2));color:var(--cream);border:4px solid var(--wood2);border-radius:14px;box-shadow:0 6px 0 var(--wood2),0 12px 18px rgba(40,20,5,.25);position:relative}
+.btn{display:inline-flex;align-items:center;gap:10px;font:22px Jua,sans-serif;text-decoration:none;padding:14px 26px;min-height:52px;cursor:pointer;transition:transform .15s}
+.btn:hover{transform:translateY(-3px) rotate(-1deg)}.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--wood2)}
+.btn.green{background:linear-gradient(#8cc06a,var(--leaf) 20%,var(--leaf) 80%,var(--leaf2));border-color:#2c4c24;box-shadow:0 6px 0 #2c4c24,0 12px 18px rgba(20,40,10,.3)}
+.btn:focus-visible,button:focus-visible{outline:3px dashed var(--gold);outline-offset:4px}
+.sway{animation:sway 3.4s ease-in-out infinite;transform-origin:top center}
+@keyframes sway{0%,100%{rotate:-1.5deg}50%{rotate:1.5deg}}
+
+/* ---------- nav ---------- */
+nav{position:sticky;top:0;z-index:50;background:rgba(62,38,22,.92);backdrop-filter:blur(6px);color:var(--cream);border-bottom:4px solid var(--wood2)}
+nav .wrap{display:flex;align-items:center;gap:18px;min-height:64px;flex-wrap:wrap}
+nav .brand{font:24px Jua;text-decoration:none;display:flex;align-items:center;gap:8px}
+nav .brand img{width:36px;height:36px}
+nav .links{display:flex;gap:4px 18px;margin-left:auto;flex-wrap:wrap}
+nav .links a{text-decoration:none;font:18px Jua;padding:8px 2px}
+nav .links a:hover{color:var(--gold)}
+.toggle{background:var(--wood);border:3px solid var(--wood2);border-radius:30px;width:64px;height:34px;position:relative;cursor:pointer;padding:0}
+.toggle span{position:absolute;top:3px;left:4px;width:22px;height:22px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold);transition:left .35s,background .35s,box-shadow .35s}
+.night .toggle span{left:33px;background:#e9e7ff;box-shadow:inset -6px -2px 0 #b9b4e6,0 0 10px #c9c4ff}
+
+/* ---------- hero scene ---------- */
+.hero{position:relative;height:clamp(560px,86vh,760px);overflow:hidden;background:linear-gradient(var(--sky1),var(--sky2) 70%)}
+.scene{position:absolute;inset:auto 0 70px 0;height:min(500px,70%);background:url(assets/scenery.png) repeat-x bottom left/auto 100%;animation:pan 140s linear infinite}
+@keyframes pan{to{background-position:-1240px 0}}
+.ground{position:absolute;inset:auto 0 0 0;height:72px;background:linear-gradient(#5d8f37,var(--grass) 30%,#365a20);border-top:6px solid #7fb04a}
+.cloud{position:absolute;width:120px;height:24px;background:#fff6ea;box-shadow:24px -12px 0 -2px #fff6ea,52px -20px 0 0 #fff6ea,80px -8px 0 -4px #fff6ea,0 6px 0 #e8d8cf;opacity:.55;animation:drift linear infinite}
+@keyframes drift{from{translate:-260px 0}to{translate:110vw 0}}
+.sparkles{position:absolute;inset:0;pointer-events:none}
+.sp{position:absolute;width:6px;height:6px;background:var(--gold);box-shadow:6px 0 0 rgba(255,214,107,.5),-6px 0 0 rgba(255,214,107,.5),0 6px 0 rgba(255,214,107,.5),0 -6px 0 rgba(255,214,107,.5);animation:twinkle 3s ease-in-out infinite;opacity:0}
+@keyframes twinkle{50%{opacity:1;scale:1.2}}
+.heroText{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:clamp(28px,6vh,64px);text-align:center;z-index:5}
+.sign{position:relative;width:min(560px,90vw);animation:drop 1s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes drop{from{translate:0 -120%}}
+.sign img{width:100%;display:block}
+.sign h1{position:absolute;inset:0;display:grid;place-items:center;padding:0 16% 6%;font-size:clamp(34px,7.4vw,66px);color:#fff1d2;text-shadow:0 4px 0 #3e2616,3px 0 0 #3e2616,-3px 0 0 #3e2616,0 -3px 0 #3e2616}
+.tagline{margin:6px 0 0;background:var(--cream);border:3px solid var(--wood2);border-radius:999px;padding:8px 22px;font:clamp(18px,2.6vw,24px) Jua;color:var(--wood);box-shadow:0 4px 0 var(--wood2)}
+.mock{font-size:15px;margin-top:8px;color:#5b3c26;opacity:.85}
+.leifSpot{position:absolute;bottom:58px;left:50%;translate:-50% 0;z-index:6;display:flex;align-items:flex-end;gap:12px}
+.leif{position:relative;width:clamp(150px,20vw,210px);aspect-ratio:1;cursor:pointer;animation:bob 2.2s ease-in-out infinite;background:none;border:0;padding:0}
+.leif img{position:absolute;inset:0;width:100%;height:100%}
+.leif:hover{animation:wiggle .5s ease-in-out}
+@keyframes bob{50%{translate:0 -8px}}
+@keyframes wiggle{25%{rotate:-6deg}75%{rotate:6deg}}
+.bubble{position:absolute;bottom:96%;left:62%;width:max-content;max-width:min(260px,60vw);background:#fff;border:3px solid var(--ink);border-radius:16px;padding:10px 14px;font:18px/1.3 Gaegu;font-weight:700;opacity:0;scale:.6;transform-origin:bottom left;transition:opacity .2s,scale .25s cubic-bezier(.3,1.6,.5,1);pointer-events:none}
+.bubble::after{content:"";position:absolute;left:18px;bottom:-12px;border:9px solid transparent;border-top-color:var(--ink)}
+.bubble.on{opacity:1;scale:1}
+.lantern{position:relative;width:60px}.lantern img{width:60px;display:block}
+.glow{position:absolute;width:120px;left:-12px;top:-28px;opacity:.75;animation:flicker 2.6s ease-in-out infinite;pointer-events:none;mix-blend-mode:screen}
+@keyframes flicker{30%{opacity:.55}60%{opacity:.85}}
+.hatbar{position:absolute;bottom:14px;right:16px;z-index:7;display:flex;gap:8px;align-items:center;font:16px Jua;color:var(--cream)}
+.hatbar button{width:46px;height:46px;border-radius:10px;border:3px solid var(--wood2);background:var(--cream);cursor:pointer;padding:2px}
+.hatbar button img{width:100%;height:100%;object-fit:contain}
+.hatbar button[aria-pressed=true]{background:var(--gold)}
+.night .hero{background:linear-gradient(#141a3a,#3a3366 75%)}
+.night .scene{filter:brightness(.45) saturate(.7) hue-rotate(-12deg)}
+.night .cloud{opacity:.25}
+.night .ground{filter:brightness(.55)}
+.stars,.flies{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1s}
+.night .stars,.night .flies{opacity:1}
+.star{position:absolute;width:3px;height:3px;background:#fff;animation:twinkle 2.5s infinite}
+.fly{position:absolute;width:6px;height:6px;border-radius:50%;background:#f8ff9a;box-shadow:0 0 10px 4px rgba(240,255,120,.6);animation:float 7s ease-in-out infinite}
+@keyframes float{25%{translate:30px -20px}50%{translate:-10px -45px}75%{translate:-35px -10px}}
+
+/* ---------- section helpers ---------- */
+.band{padding:clamp(52px,7vw,96px) 0;position:relative}
+.head{display:flex;align-items:flex-end;gap:14px;margin-bottom:26px}
+.sprout{width:64px;height:64px;position:relative;flex:none}
+.sprout img{position:absolute;inset:0;width:100%;height:100%;transition:opacity .4s,scale .6s cubic-bezier(.3,1.6,.5,1);transform-origin:bottom center}
+.sprout .grown{opacity:0;scale:.2}
+.in .sprout .seed{opacity:0;scale:.6}.in .sprout .grown{opacity:1;scale:1}
+.reveal{opacity:0;translate:0 30px;transition:opacity .7s,translate .7s}
+.reveal.in{opacity:1;translate:0 0}
+
+/* ---------- featured game ---------- */
+.game{background:linear-gradient(#f6c7a8,var(--paper) 140px)}
+.gameGrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:center}
+.gameLogo{width:min(440px,100%);display:block;margin:0 0 10px -8px;animation:sway 5s ease-in-out infinite;transform-origin:top center}
+.pitch{font-size:21px;max-width:34em}
+.feat{list-style:none;padding:0;margin:18px 0 26px;display:grid;gap:8px}
+.feat li{display:flex;gap:10px;align-items:center}
+.feat img{width:36px;height:36px;flex:none}
+.ctaRow{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.ea{font:17px Jua;color:var(--wood)}
+.trailer{display:block;position:relative;border:6px solid var(--wood);border-radius:12px;overflow:hidden;box-shadow:0 10px 0 var(--wood2),0 18px 30px rgba(40,20,5,.3);rotate:1.2deg;transition:rotate .3s}
+.trailer:hover{rotate:0deg}
+.trailer img{width:100%;display:block;image-rendering:auto}
+.play{position:absolute;inset:0;display:grid;place-items:center;background:rgba(40,20,5,.25)}
+.play span{width:86px;height:86px;border-radius:50%;background:var(--coral);border:5px solid #fff1d2;display:grid;place-items:center;animation:pulse 1.8s infinite}
+.play span::before{content:"";margin-left:8px;border:18px solid transparent;border-left:28px solid #fff1d2;border-right:0}
+@keyframes pulse{50%{scale:1.1}}
+.leaf{position:fixed;z-index:99;width:16px;height:10px;background:var(--leaf);border-radius:0 10px 0 10px;pointer-events:none;animation:fall 1.4s ease-in forwards}
+@keyframes fall{to{translate:var(--dx) 220px;rotate:var(--r);opacity:0}}
+
+/* ---------- tower ---------- */
+.towerBand{background:linear-gradient(var(--paper),#f3d9b0)}
+.towerGrid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(24px,4vw,56px)}
+.towerCol{position:sticky;top:90px;align-self:start;display:flex;flex-direction:column;align-items:center}
+.vane{width:56px;margin-bottom:-6px;opacity:0;transition:opacity .6s}
+.vane.on{opacity:1;animation:spin 6s ease-in-out infinite}
+@keyframes spin{50%{scale:-1 1}}
+.tower{width:min(420px,100%);display:flex;flex-direction:column-reverse}
+.tower img{width:100%;display:block}
+.floor{max-height:0;overflow:hidden;transition:max-height .7s cubic-bezier(.3,1.3,.5,1)}
+.floor.on{max-height:300px}
+.floor img{border-left:4px solid #5b4a42;border-right:4px solid #5b4a42}
+.storyCards{display:grid;gap:clamp(90px,16vh,160px);padding:40px 0 120px}
+.card{background:var(--cream);border:4px solid var(--wood);border-radius:16px;padding:22px 24px;box-shadow:0 6px 0 var(--wood2)}
+.card h3{color:var(--wood);margin-bottom:6px}
+
+/* ---------- gallery ---------- */
+.board{background:#c89a64 radial-gradient(#b8854f 1px,transparent 1.5px) 0 0/14px 14px;border:10px solid var(--wood);border-radius:14px;box-shadow:inset 0 0 30px rgba(60,30,10,.4),0 8px 0 var(--wood2);padding:clamp(18px,3vw,36px);display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:28px}
+.pol{background:#fffaf0;padding:10px 10px 12px;box-shadow:0 8px 14px rgba(40,20,5,.35);rotate:var(--t);transition:rotate .3s,scale .3s;cursor:zoom-in;border:0;font:inherit;text-align:center;position:relative}
+.pol:hover{rotate:0deg;scale:1.04;z-index:2}
+.pol::before{content:"";position:absolute;top:-8px;left:50%;width:18px;height:18px;border-radius:50%;background:var(--coral);box-shadow:inset -3px -3px 0 rgba(0,0,0,.25);translate:-50% 0}
+.pol img{width:100%;display:block;image-rendering:auto}
+.pol span{display:block;font:18px Gaegu;font-weight:700;margin-top:6px}
+.light{position:fixed;inset:0;z-index:200;background:rgba(30,15,5,.85);display:none;place-items:center;padding:20px}
+.light.on{display:grid}.light img{max-width:min(1100px,100%);max-height:85vh;border:8px solid #fffaf0;image-rendering:auto}
+
+/* ---------- about ---------- */
+.aboutGrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(20px,4vw,48px);align-items:center}
+.jessLeif{width:clamp(140px,18vw,200px)}
+.shelf{display:flex;justify-content:center;gap:clamp(6px,2vw,22px);flex-wrap:wrap;margin-top:34px;padding-bottom:10px;border-bottom:14px solid var(--wood);box-shadow:0 6px 0 var(--wood2)}
+.shelf img{width:clamp(56px,8vw,84px);transform-origin:bottom center;animation:sway 4s ease-in-out infinite;cursor:pointer}
+.shelf img:nth-child(2n){animation-delay:-1.5s}.shelf img:nth-child(3n){animation-delay:-2.6s}
+.shelf img.hop{animation:hop .5s}
+@keyframes hop{40%{translate:0 -18px}}
+
+/* ---------- press + contact ---------- */
+.signs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:22px}
+.signs .plank{padding:20px 22px;text-decoration:none;display:block;transition:transform .2s}
+.signs .plank:hover{transform:translateY(-4px) rotate(-1deg)}
+.signs .plank b{font:24px Jua;display:block;color:var(--gold)}
+.mail{font:22px Jua;word-break:break-all}
+
+/* ---------- footer ---------- */
+footer{background:linear-gradient(#5d8f37,#2f4c1c);color:var(--cream);padding:0 0 30px;position:relative;margin-top:40px}
+.planters{display:block;width:min(520px,90%);margin:-60px auto 0}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 26px;justify-content:center;align-items:center;font:18px Jua}
+footer a{text-decoration:none;padding:8px 2px}footer a:hover{color:var(--gold)}
+footer small{display:block;width:100%;text-align:center;font:16px Gaegu;opacity:.85}
+
+@media(max-width:760px){
+ .gameGrid,.towerGrid,.aboutGrid{grid-template-columns:minmax(0,1fr)}
+ .towerCol{position:relative;top:0}
+ .storyCards{gap:22px;padding:20px 0}
+ .aboutGrid{justify-items:center;text-align:center}
+ nav .links{width:100%;justify-content:center;margin:0 0 8px}
+ .leifSpot{left:42%}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;translate:0}.floor{max-height:300px}.sprout .grown{opacity:1;scale:1}.sprout .seed{opacity:0}}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+ <a class="brand" href="#top"><img src="assets/SeedlingPlantTwo.png" alt="">Shroomy Games</a>
+ <div class="links"><a href="#leif">Leif's Garden Tower</a><a href="#tower">Tour</a><a href="#about">About</a><a href="#press">Press</a></div>
+ <button class="toggle" id="toggle" aria-label="Switch day and night" aria-pressed="false"><span></span></button>
+</div></nav>
+
+<header class="hero" id="top">
+ <div class="scene"></div>
+ <div class="stars" id="stars"></div>
+ <div id="clouds"></div>
+ <div class="sparkles" id="sparkles"></div>
+ <div class="flies" id="flies"></div>
+ <div class="heroText">
+  <div class="sign"><img src="assets/logo_v2_plaque_vines_no_text.png" alt=""><h1>Shroomy Games</h1></div>
+  <p class="tagline" id="tagline">Cozy pixel games, grown by hand</p>
+ </div>
+ <div class="leifSpot">
+  <div class="lantern"><img class="glow" src="assets/LanternGlowSprite.png" alt=""><img src="assets/LanternSprite.png" alt=""></div>
+  <button class="leif" id="leif" aria-label="Say hi to Leif">
+   <img src="assets/leif_sprite_A_512.png" alt="Leif, a small leaf spirit">
+   <img id="hat" src="" alt="" hidden>
+   <span class="bubble" id="bubble">Oh! A visitor!</span>
+  </button>
+ </div>
+ <div class="hatbar" aria-label="Try a hat on Leif">Wardrobe
+  <button data-hat="" aria-pressed="true" title="No hat"><img src="assets/leif_sprite_A_512.png" alt="No hat"></button>
+  <button data-hat="LeifLadybugHeadband" aria-pressed="false" title="Ladybug headband"><img src="assets/LeifLadybugHeadband_icon.png" alt="Ladybug headband"></button>
+  <button data-hat="LeifAgathasHat" aria-pressed="false" title="Agatha's hat"><img src="assets/LeifAgathasHat_icon.png" alt="Agatha's hat"></button>
+  <button data-hat="LeifDaisyHat" aria-pressed="false" title="Daisy hat"><img src="assets/LeifDaisyHat_icon.png" alt="Daisy hat"></button>
+ </div>
+ <div class="ground"></div>
+</header>
+
+<section class="band game" id="leif">
+ <div class="wrap gameGrid">
+  <div class="reveal">
+   <img class="gameLogo" src="assets/logo_v2_full_transparent.png" alt="Leif's Garden Tower">
+   <p class="pitch">Leif is a tiny leaf spirit who has been looking after Agatha's old greenhouse tower all on his own for a very long time. Grow plants, build your tower floor by floor, and keep him company.</p>
+   <ul class="feat">
+    <li><img src="assets/AloeVeraPlant.png" alt="">Grow, collect and sell 50 hand-pixeled plants</li>
+    <li><img src="assets/GoldenPothosPlant.png" alt="">Build greenhouses, a Plant Shop and a cozy Cafe</li>
+    <li><img src="assets/FlamingoFlowerPlant.png" alt="">Decorate every room and dress Leif up in hats</li>
+    <li><img src="assets/PeaceLillyPlant.png" alt="">Meet the regulars who come looking for the perfect plant</li>
+   </ul>
+   <div class="ctaRow">
+    <a class="btn plank green sway" id="wish" href="https://store.steampowered.com/app/5285840?utm_source=website">Wishlist on Steam</a>
+    <span class="ea">Early Access, March 2027</span>
+   </div>
+  </div>
+  <a class="trailer reveal" href="https://www.youtube.com/watch?v=hAoAlUIL6y4" aria-label="Watch the trailer on YouTube">
+   <img src="assets/screenshot_9_cafe_floors.jpg" alt="Leif's Garden Tower trailer">
+   <div class="play"><span></span></div>
+  </a>
+ </div>
+</section>
+
+<section class="band towerBand" id="tower">
+ <div class="wrap">
+  <div class="head reveal"><div class="sprout"><img class="seed" src="assets/SeedlingPlantOne.png" alt=""><img class="grown" src="assets/SwissCheesePlant.png" alt=""></div><h2>Take the tour</h2></div>
+  <div class="towerGrid">
+   <div class="towerCol">
+    <img class="vane" id="vane" src="assets/Weathervane.png" alt="">
+    <div class="tower" id="towerStack">
+     <img src="assets/entrance.png" alt="The tower's front door">
+     <div class="floor" data-f="0"><img src="assets/floor_greenhouse.png" alt="Greenhouse"></div>
+     <div class="floor" data-f="1"><img src="assets/floor_shop.png" alt="Plant Shop"></div>
+     <div class="floor" data-f="2"><img src="assets/floor_cafe.png" alt="Cafe"></div>
+     <div class="floor" data-f="3"><img src="assets/floor_spa.png" alt="Spa"></div>
+    </div>
+   </div>
+   <div class="storyCards">
+    <div class="card reveal" data-step="0"><h3>The Greenhouse</h3><p>Plant seeds, water them, and watch them grow. Better care means more stars, and more stars mean more coins.</p></div>
+    <div class="card reveal" data-step="1"><h3>The Plant Shop</h3><p>Visitors drop by looking for something special. Find the plant that fits and make their day.</p></div>
+    <div class="card reveal" data-step="2"><h3>The Cafe</h3><p>Bake treats, pour tea and give your regulars somewhere cozy to sit.</p></div>
+    <div class="card reveal" data-step="3"><h3>The Spa</h3><p>Brew soothing blends and let the warm steam help your greenhouses grow.</p></div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band" id="gallery">
+ <div class="wrap">
+  <div class="head reveal"><div class="sprout"><img class="seed" src="assets/SeedlingPlantTwo.png" alt=""><img class="grown" src="assets/BirdOfParadisePlant.png" alt=""></div><h2>Snapshots from the tower</h2></div>
+  <div class="board reveal" id="board"></div>
+ </div>
+</section>
+
+<section class="band" id="about" style="background:#f3d9b0">
+ <div class="wrap">
+  <div class="aboutGrid reveal">
+   <img class="jessLeif" src="assets/leif_sprite_B_512.png" alt="Leif">
+   <div>
+    <div class="head" style="margin-bottom:12px"><div class="sprout"><img class="seed" src="assets/SeedlingPlantOne.png" alt=""><img class="grown" src="assets/StringOfHeartsPlant.png" alt=""></div><h2>Hi, I'm Jess</h2></div>
+    <p class="pitch">Shroomy Games is me, a solo developer making small, cozy games by hand. I pixel the plants, write the story and code it all, with a little help from friends along the way. Leif's Garden Tower is my first game, and I'm so glad you stopped by.</p>
+   </div>
+  </div>
+  <div class="shelf" id="shelf"></div>
+ </div>
+</section>
+
+<section class="band" id="press">
+ <div class="wrap">
+  <div class="head reveal"><div class="sprout"><img class="seed" src="assets/SeedlingPlantTwo.png" alt=""><img class="grown" src="assets/FairyCastleCactusPlant.png" alt=""></div><h2>Press and contact</h2></div>
+  <div class="signs reveal">
+   <a class="plank" href="https://drive.google.com/file/d/1v9uq5VzbbCIpP5x0YoMkf0YqKRhhN7Gh/view?usp=sharing"><b>Press kit</b>Logos, screenshots, GIFs and the fact sheet</a>
+   <a class="plank" href="https://www.youtube.com/watch?v=hAoAlUIL6y4"><b>Trailer</b>Watch it on YouTube</a>
+   <a class="plank" href="mailto:jess@shroomygames.com"><b>Say hello</b><span class="mail">jess@shroomygames.com</span></a>
+  </div>
+ </div>
+</section>
+
+<footer>
+ <img class="planters" src="assets/PlantersSprite.png" alt="">
+ <div class="wrap">
+  <a href="https://store.steampowered.com/app/5285840?utm_source=website">Steam</a>
+  <a href="https://shroomyhoomie.itch.io">itch.io</a>
+  <a href="https://discord.gg/akHjMf24SH">Discord</a>
+  <small>Made with love and a lot of watering. © 2026 Shroomy Games</small>
+ </div>
+</footer>
+
+<div class="light" id="light" role="dialog" aria-label="Screenshot"><img id="lightImg" alt=""></div>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+/* clouds, sparkles, stars, fireflies */
+$('#clouds').innerHTML=[0,1,2,3].map(i=>`<div class="cloud" style="top:${rnd(6,34)}%;scale:${rnd(.6,1.2).toFixed(2)};animation-duration:${rnd(60,110)|0}s;animation-delay:-${rnd(0,90)|0}s"></div>`).join('');
+$('#sparkles').innerHTML=Array.from({length:22},()=>`<i class="sp" style="left:${rnd(2,98)}%;top:${rnd(5,80)}%;animation-delay:-${rnd(0,3).toFixed(1)}s"></i>`).join('');
+$('#stars').innerHTML=Array.from({length:60},()=>`<i class="star" style="left:${rnd(0,100)}%;top:${rnd(0,55)}%;animation-delay:-${rnd(0,2.5).toFixed(1)}s"></i>`).join('');
+$('#flies').innerHTML=Array.from({length:18},()=>`<i class="fly" style="left:${rnd(3,97)}%;top:${rnd(45,88)}%;animation-delay:-${rnd(0,7).toFixed(1)}s;animation-duration:${rnd(5,9).toFixed(1)}s"></i>`).join('');
+
+/* taglines (mockup only) */
+
+/* Leif talks */
+const lines=['Oh! A visitor!','Have you watered your plants today?','Agatha always said a tower needs company.','Would you wishlist us? My leaves would curl with joy!','Shh, the Swiss Cheese Plant is napping.','I just finished dusting the Cafe!','Do you like my hat? Try another one!','Every plant has a story, you know.'];
+let li=0,bt;
+const say=t=>{const b=$('#bubble');b.textContent=t;b.classList.add('on');clearTimeout(bt);bt=setTimeout(()=>b.classList.remove('on'),3200)};
+setTimeout(()=>say(lines[0]),1100);
+$('#leif').onclick=()=>{li=(li+1)%lines.length;say(lines[li])};
+
+/* wardrobe */
+document.querySelectorAll('.hatbar button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('.hatbar button').forEach(x=>x.setAttribute('aria-pressed','false'));
+ b.setAttribute('aria-pressed','true');const h=$('#hat');
+ if(b.dataset.hat){h.src='assets/'+b.dataset.hat+'.png';h.hidden=false;say('How do I look?')}else{h.hidden=true;say('Back to my natural leafy look!')}
+});
+
+/* day and night */
+let night=false;try{night=localStorage.getItem('sg-night')==='1'}catch(e){}
+const setNight=n=>{document.body.classList.toggle('night',n);$('#toggle').setAttribute('aria-pressed',n)};
+setNight(night);
+$('#toggle').onclick=()=>{night=!night;setNight(night);try{localStorage.setItem('sg-night',night?'1':'0')}catch(e){};say(night?'Look, fireflies!':'Good morning, sunshine!')};
+
+/* leaves on the wishlist button */
+$('#wish').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect();
+ for(let i=0;i<14;i++){const l=document.createElement('i');l.className='leaf';l.style.left=(r.left+rnd(0,r.width))+'px';l.style.top=(r.top+rnd(0,10))+'px';l.style.setProperty('--dx',rnd(-80,80)+'px');l.style.setProperty('--r',rnd(-300,300)+'deg');l.style.background=['#5f8f4e','#8cc06a','#ffd66b'][i%3];document.body.appendChild(l);setTimeout(()=>l.remove(),1500)}});
+
+/* gallery */
+const shots=[['screenshot_9_cafe_floors','A busy afternoon'],['screenshot_10_cafe_visitor','Regulars at the Cafe'],['screenshot_8_leif_dialogue','Chatting with Leif'],['screenshot_6_journal_greenhouse',"Agatha's journal"],['screenshot_11_tower_overview','The whole tower'],['screenshot_7_calendar','Holidays and birthdays']];
+$('#board').innerHTML=shots.map(([f,c])=>`<button class="pol" style="--t:${rnd(-4,4).toFixed(1)}deg" data-src="assets/${f}.jpg"><img src="assets/${f}.jpg" alt="${c}" loading="lazy"><span>${c}</span></button>`).join('');
+document.querySelectorAll('.pol').forEach(p=>p.onclick=()=>{$('#lightImg').src=p.dataset.src;$('#light').classList.add('on')});
+$('#light').onclick=()=>$('#light').classList.remove('on');
+addEventListener('keydown',e=>{if(e.key==='Escape')$('#light').classList.remove('on')});
+
+/* plant shelf */
+const plants=['AloeVeraPlant','GoldenPothosPlant','BirdOfParadisePlant','FlamingoFlowerPlant','SwissCheesePlant','PeaceLillyPlant','StringOfHeartsPlant','FairyCastleCactusPlant'];
+$('#shelf').innerHTML=plants.map(p=>`<img src="assets/${p}.png" alt="">`).join('');
+document.querySelectorAll('#shelf img').forEach(i=>i.onclick=()=>{i.classList.remove('hop');void i.offsetWidth;i.classList.add('hop')});
+
+/* reveal and sprouts */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.2});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* tower grows as the cards scroll past */
+const floors=[...document.querySelectorAll('.floor')];
+const towerIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const n=+e.target.dataset.step;floors.forEach((f,i)=>{if(i<=n)f.classList.add('on')});if(n===3)$('#vane').classList.add('on')}}),{threshold:.6});
+document.querySelectorAll('[data-step]').forEach(el=>towerIO.observe(el));
+}
+</script>
+</body>
+</html>
