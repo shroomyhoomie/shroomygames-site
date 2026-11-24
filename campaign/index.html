@@ -43,8 +43,8 @@
 <!-- JOB BOARD -->
 <section id="board">
   <div class="wrap">
-    <div class="sec-head"><span id="hBoard"></span><h2>The Job Board</h2>
-      <p>Pinned by the door of The Sleeping Drake. Tap a notice to read it. The DM updates which jobs are taken.</p></div>
+    <div class="sec-head"><span id="hBoard"></span><h2>The Job Board</h2><span class="livetag hidden" id="liveTag">● Live</span>
+      <p>Pinned by the door of The Sleeping Drake. Tap a notice to read it, then vote for the jobs your hero wants. Everyone sees the votes live.</p></div>
     <div class="board">
       <div class="board-tabs" role="group" aria-label="Filter jobs">
         <button data-f="all" aria-pressed="true">All</button>
@@ -151,42 +151,74 @@ $('#partyTitle').textContent = C.group ? 'The Party: ' + C.group : 'The Party';
 $('#hMap').innerHTML = icon('treasure-map');
 $('#hGuide').innerHTML = icon('open-book');
 $('#hLog').innerHTML = icon('sands-of-time');
-$('#nextUp').innerHTML = `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+function drawNext(){ $('#nextUp').innerHTML = `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
   <span style="color:var(--gold)">${icon('lantern-flame')}</span>
   <div><div class="jua" style="font-size:22px;color:var(--gold)">Next session</div>
-  <div>${esc(C.next.what)}</div><div class="muted">${esc(C.next.when)} · ${esc(C.next.where)}</div></div></div>`;
+  <div>${esc(C.next.what)}</div><div class="muted">${esc(C.next.when)} · ${esc(C.next.where)}</div></div></div>`; }
+drawNext();
 
 // ----- modal -----
 const modal = $('#modal');
 function openModal(html){ $('#mBody').innerHTML = html; modal.classList.remove('hidden'); $('#mClose').focus(); }
-function closeModal(){ modal.classList.add('hidden'); }
+function closeModal(){ modal.classList.add('hidden'); OPEN_ID = null; }
 $('#mClose').onclick = closeModal;
 modal.onclick = e => { if (e.target === modal) closeModal(); };
 addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-// ----- job board -----
-const skulls = d => d === '?' ? '???' : (d === 0 ? 'safe' : '⚔'.repeat(d));
-function renderJobs(filter){
-  $('#notes').innerHTML = C.jobs.filter(j => filter === 'all' || j.status === filter).map((j, i) => `
-    <button class="note ${j.wizard ? 'wizard' : ''}" style="--t:${((i * 37) % 9 - 4)}deg" data-id="${j.id}">
+// ----- job board (live when Firebase connects, otherwise the notices in data.js) -----
+let JOBS = C.jobs.map((j, i) => ({ ...j, order: i, votes: {} })), FILTER = 'all', OPEN_ID = null;
+window.BOARD = { live: null, uid: null };
+const skulls = d => d === '?' ? '???' : (d === 0 || d === '0' ? 'safe' : '⚔'.repeat(+d || 0));
+const myName = () => { try { return localStorage.getItem('cc_name') || ''; } catch (e) { return ''; } };
+const votesOf = j => Object.values(j.votes || {});
+function renderJobs(){
+  const list = JOBS.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).filter(j => FILTER === 'all' || j.status === FILTER);
+  $('#notes').innerHTML = list.map((j, i) => { const v = votesOf(j).length; return `
+    <button class="note ${j.wizard ? 'wizard' : ''}" style="--t:${((i * 37) % 9 - 4)}deg" data-id="${esc(j.id)}">
       <h3>${esc(j.title)}</h3>
       <div class="from">${esc(j.from)}</div>
       <div class="danger" title="Danger">${skulls(j.danger)}</div>
+      ${v ? `<div class="votes">${icon('crossed-swords')} ${v} ${v === 1 ? 'hero wants' : 'heroes want'} this</div>` : ''}
       <div class="reward">${icon('swap-bag')} ${esc(j.reward)}</div>
-      ${j.status !== 'open' ? `<span class="stamp ${j.status}">${j.status}</span>` : ''}
-    </button>`).join('') || '<p style="color:var(--cream)">No notices here.</p>';
-  document.querySelectorAll('.note').forEach(n => n.onclick = () => {
-    const j = C.jobs.find(x => x.id === n.dataset.id);
-    openModal(`<h3 id="mTitle">${esc(j.title)}</h3><p class="muted" style="margin:0">${esc(j.from)}</p>
-      <p style="font-size:21px">${esc(j.text)}</p>
-      <p><b>Reward:</b> ${esc(j.reward)}<br><b>Danger:</b> ${skulls(j.danger)}<br><b>Status:</b> ${j.status === 'open' ? 'Open, ask the DM to take it!' : esc(j.status)}</p>`);
-  });
+      ${j.status !== 'open' ? `<span class="stamp ${esc(j.status)}">${esc(j.status)}</span>` : ''}
+    </button>`; }).join('') || '<p style="color:var(--cream)">No notices here.</p>';
+  document.querySelectorAll('.note').forEach(n => n.onclick = () => openJob(n.dataset.id));
+  if (OPEN_ID && !modal.classList.contains('hidden')) openJob(OPEN_ID, true);
 }
+function openJob(id, refresh){
+  const j = JOBS.find(x => x.id === id); if (!j) return; OPEN_ID = id;
+  const live = window.BOARD.live, mine = live && j.votes && j.votes[window.BOARD.uid];
+  const names = votesOf(j);
+  const voteUI = !live ? '' : j.status === 'done' ? '' : `
+    <div class="voteBox">
+      <b>${names.length ? 'Heroes who want this job: ' + names.map(esc).join(', ') : 'Nobody has picked this job yet.'}</b>
+      ${mine ? `<button class="btn plank small" id="unvote">Take back my vote</button>` : `
+        <label for="vname" style="display:block;margin-top:8px">Your character's name</label>
+        <div class="row2"><input id="vname" maxlength="40" value="${esc(myName())}" placeholder="e.g. Brannoc the Bold">
+        <button class="btn green small" id="vote">${icon('crossed-swords')} I want this job!</button></div>`}
+      <p class="muted" id="vmsg" style="margin:6px 0 0;font-size:16px">The DM decides which job the party takes.</p>
+    </div>`;
+  const html = `<h3 id="mTitle">${esc(j.title)}</h3><p class="muted" style="margin:0">${esc(j.from)}</p>
+    <p style="font-size:21px">${esc(j.text)}</p>
+    <p><b>Reward:</b> ${esc(j.reward)}<br><b>Danger:</b> ${skulls(j.danger)}<br><b>Status:</b> ${j.status === 'open' ? 'Open' : esc(j.status)}${j.takenBy ? ' by ' + esc(j.takenBy) : ''}</p>${voteUI}`;
+  if (refresh) { const keep = $('#vname') ? $('#vname').value : null; $('#mBody').innerHTML = html; if (keep != null && $('#vname')) $('#vname').value = keep; }
+  else openModal(html);
+  if ($('#vote')) $('#vote').onclick = async () => {
+    const name = $('#vname').value.trim().slice(0, 40); if (!name) { $('#vmsg').textContent = 'Type your character\'s name first.'; return; }
+    try { localStorage.setItem('cc_name', name); } catch (e) {}
+    $('#vmsg').textContent = 'Pinning your vote...';
+    try { await window.BOARD.vote(j.id, name); } catch (e) { $('#vmsg').textContent = 'That didn\'t work. Try again in a moment.'; }
+  };
+  if ($('#unvote')) $('#unvote').onclick = async () => { try { await window.BOARD.unvote(j.id); } catch (e) { $('#vmsg').textContent = 'That didn\'t work. Try again.'; } };
+}
+window.BOARD.setJobs = list => { JOBS = list; renderJobs(); };
+window.BOARD.setNext = n => { if (n) { C.next = { ...C.next, ...n }; drawNext(); } };
+window.BOARD.setLive = on => { $('#liveTag').classList.toggle('hidden', !on); };
 document.querySelectorAll('.board-tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.board-tabs button').forEach(x => x.setAttribute('aria-pressed', x === b));
-  renderJobs(b.dataset.f);
+  FILTER = b.dataset.f; renderJobs();
 });
-renderJobs('all');
+renderJobs();
 
 // ----- party -----
 $('#partyGrid').innerHTML = C.party.map(p => `<div class="card pc">
@@ -245,6 +277,23 @@ $('#rules').innerHTML = C.rules.map(r => `<li>${esc(r)}</li>`).join('');
 
 // ----- log -----
 $('#logList').innerHTML = C.log.map(l => `<div class="card entry"><h3>Session ${l.n}: ${esc(l.title)}<small>${esc(l.date)}</small></h3><p style="margin:6px 0 0">${esc(l.text)}</p></div>`).join('');
+</script>
+<script type="module">
+// Live board: anonymous sign-in for players, live notices and votes from Firestore
+try {
+  const L = await import('./live.js');
+  const cred = await L.signInAnonymously(L.auth).catch(() => null);
+  const uid = () => L.auth.currentUser && L.auth.currentUser.uid;
+  window.BOARD.vote = (id, name) => L.updateDoc(L.doc(L.db, 'jobs', id), { ['votes.' + uid()]: name });
+  window.BOARD.unvote = id => L.updateDoc(L.doc(L.db, 'jobs', id), { ['votes.' + uid()]: L.deleteField() });
+  L.onSnapshot(L.collection(L.db, 'jobs'), snap => {
+    if (snap.empty) return; // the DM hasn't uploaded the board yet: keep the notices from data.js
+    window.BOARD.live = true; window.BOARD.uid = uid();
+    window.BOARD.setJobs(snap.docs.map(d => ({ id: d.id, votes: {}, ...d.data() })));
+    window.BOARD.setLive(true);
+  }, () => {});
+  L.onSnapshot(L.doc(L.db, 'meta', 'next'), d => { if (d.exists()) window.BOARD.setNext(d.data()); }, () => {});
+} catch (e) { console.warn('Live board unavailable, showing the saved notices.', e); }
 </script>
 </body>
 </html>
