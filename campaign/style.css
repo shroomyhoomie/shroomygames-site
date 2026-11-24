@@ -124,3 +124,6 @@ footer p{margin:6px auto;max-width:60em}
 .voteBox{background:#fff8e6;border:3px dashed var(--wood2);border-radius:12px;padding:12px 14px;margin-top:10px}
 .voteBox input{font:18px Gaegu;font-weight:700;border:3px solid var(--wood2);border-radius:10px;padding:8px 10px;background:#fffaf0;color:var(--ink);flex:1 1 160px;min-height:44px}
 .row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+
+nav .links a.dmbtn{display:inline-flex;align-items:center;gap:4px;background:var(--plum);color:var(--cream);border:2px solid var(--gold);border-radius:999px;padding:3px 12px}
+nav .links a.dmbtn:hover{background:var(--gold);color:var(--ink)}

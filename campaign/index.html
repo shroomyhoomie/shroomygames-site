@@ -16,7 +16,7 @@
   <div class="wrap">
     <a class="brand" href="#top" id="brand"></a>
     <div class="links">
-      <a href="#board">Job Board</a><a href="#party">Party</a><a href="#map">Map</a><a href="#guide">New to D&amp;D?</a><a href="#log">Adventure Log</a><a href="../">Shroomy Games</a>
+      <a href="#board">Job Board</a><a href="#party">Party</a><a href="#map">Map</a><a href="#guide">New to D&amp;D?</a><a href="#log">Adventure Log</a><a href="../">Shroomy Games</a><a href="dm/" class="dmbtn" id="dmBtn" title="DM Kit (password)">DM</a>
     </div>
   </div>
 </nav>
@@ -151,6 +151,7 @@ $('#partyTitle').textContent = C.group ? 'The Party: ' + C.group : 'The Party';
 $('#hMap').innerHTML = icon('treasure-map');
 $('#hGuide').innerHTML = icon('open-book');
 $('#hLog').innerHTML = icon('sands-of-time');
+$('#dmBtn').innerHTML = icon('key') + ' DM';
 function drawNext(){ $('#nextUp').innerHTML = `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
   <span style="color:var(--gold)">${icon('lantern-flame')}</span>
   <div><div class="jua" style="font-size:22px;color:var(--gold)">Next session</div>
