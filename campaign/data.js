@@ -69,8 +69,6 @@ window.CAMPAIGN = {
     "Drinking a potion is a bonus action. Feeding one to a friend takes your action.",
     "Critical hits: roll your damage dice, then add the maximum of those dice on top.",
     "We level up together at big story moments (no XP math).",
-    "Not sure what to do? Describe what your character wants and we'll figure out the roll together.",
-    "Phones down at the table unless you're using your character sheet or dice app.",
-    "Lines and veils: anything you don't want in the game, tell the DM, no questions asked. Tap the table (the X card) anytime to skip a scene."
+    "Not sure what to do? Describe what your character wants and we'll figure out the roll together."
   ]
 };
