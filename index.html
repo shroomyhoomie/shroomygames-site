@@ -40,6 +40,12 @@ nav .brand img{width:36px;height:36px}
 nav .links{display:flex;gap:4px 18px;margin-left:auto;flex-wrap:wrap}
 nav .links a{text-decoration:none;font:18px Jua;padding:8px 2px}
 nav .links a:hover{color:var(--gold)}
+.dndlink{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font:15px Jua;color:#2c2440;background:linear-gradient(#ffe39a,var(--gold));border:3px solid #6b4a7a;border-radius:999px;padding:5px 14px 5px 8px;box-shadow:0 3px 0 #6b4a7a,0 0 14px rgba(255,214,107,.45);transition:transform .15s;animation:glow 2.8s ease-in-out infinite}
+.dndlink svg{width:22px;height:22px;color:#6b4a7a;flex:none}
+.dndlink b{font-weight:400;color:#6b4a7a}
+.dndlink:hover{transform:translateY(-2px) rotate(-1deg)}
+@keyframes glow{50%{box-shadow:0 3px 0 #6b4a7a,0 0 22px rgba(255,214,107,.8)}}
+@media(max-width:600px){.dndlink span{font-size:13px}}
 .toggle{background:var(--wood);border:3px solid var(--wood2);border-radius:30px;width:64px;height:34px;position:relative;cursor:pointer;padding:0}
 .toggle span{position:absolute;top:3px;left:4px;width:22px;height:22px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold);transition:left .35s,background .35s,box-shadow .35s}
 .night .toggle span{left:33px;background:#e9e7ff;box-shadow:inset -6px -2px 0 #b9b4e6,0 0 10px #c9c4ff}
@@ -179,6 +185,7 @@ footer small{display:block;width:100%;text-align:center;font:16px Gaegu;opacity:
 <nav><div class="wrap">
  <a class="brand" href="#top"><img src="assets/SeedlingPlantTwo.png" alt="">Shroomy Games</a>
  <div class="links"><a href="#leif">Leif's Garden Tower</a><a href="#tower">Tour</a><a href="#about">About</a><a href="#press">Press</a></div>
+ <a class="dndlink" href="campaign/" title="Our home D&amp;D campaign"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2 3 7v10l9 5 9-5V7zm0 2.3 6.9 3.9L12 12 5.1 8.2zM5 9.9l6 3.4v6.8l-6-3.4zm8 10.2v-6.8l6-3.4v6.8z"/></svg><span>Click here for the <b>Copper &amp; Curios</b> campaign</span></a>
  <button class="toggle" id="toggle" aria-label="Switch day and night" aria-pressed="false"><span></span></button>
 </div></nav>
 
