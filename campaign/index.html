@@ -313,7 +313,7 @@ function magicBlock(h, mine){
   res.forEach((r, i) => { if (r && r.n && +r.max) rows += `<div class="trk"><span>${esc(r.n)} <small class="muted">${r.r === 's' ? 'short rest' : 'long rest'}</small></span><span class="pips${mine ? '' : ' ro'}">${pips(Math.min(+r.max, 20), Math.min(+r.used || 0, +r.max), 'res', i)}</span></div>`; });
   if (dice.length) rows += `<div class="trk"><span>Hit dice <small class="muted">${esc(h.hd)}</small></span><span class="pips ro">${pips(dice.length, Math.min(+h.hdUsed || 0, dice.length), 'hd', 0)}</span></div>`;
   const sp = Array.isArray(h.spells) ? h.spells : [];
-  const spellList = sp.length ? `<details class="spells"><summary>Spells (${sp.length})</summary>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(l => { const n = sp.filter(x => x[0] === l).map(x => esc(x[1])); return n.length ? `<div><b>${l ? ORD[l - 1] : 'Cantrips'}:</b> ${n.join(', ')}</div>` : ''; }).join('')}</details>` : '';
+  const spellList = sp.length ? `<details class="spells"><summary>Spells (${sp.length})</summary>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(l => { const n = sp.filter(x => (Array.isArray(x) ? x[0] : x.l) === l).map(x => esc(Array.isArray(x) ? x[1] : x.n)); return n.length ? `<div><b>${l ? ORD[l - 1] : 'Cantrips'}:</b> ${n.join(', ')}</div>` : ''; }).join('')}</details>` : '';
   const rest = mine ? `<div class="row2" style="margin-top:8px">${dice.length ? `<button class="btn small hpbtn" data-rest="hd">Spend a hit die</button>` : ''}<button class="btn small restbtn" data-rest="short">Short rest</button><button class="btn small restbtn long" data-rest="long">Long rest</button></div>${HERO_TOAST ? `<div class="toast">${esc(HERO_TOAST)}</div>` : ''}` : '';
   return rows || rest ? `<div class="trks">${rows}</div>${rest}${spellList}` : spellList;
 }
@@ -507,7 +507,7 @@ function readMagic(ORDER, F){
   ORDER.forEach(([k, v]) => {
     if (/^spellHeader\d+$/.test(k)) { lvl = /CANTRIP/i.test(v) ? 0 : (+((v.match(/(\d)(st|nd|rd|th)/i) || [])[1]) || null); }
     else if (/^spellSlotHeader\d+$/.test(k) && lvl) { const n = +((v.match(/(\d+)\s*Slot/i) || [])[1]) || 0; if (n) slots[lvl - 1] = Math.min(n, 9); }
-    else if (/^spellName\d+$/.test(k) && lvl != null && spells.length < 60) spells.push([lvl, v.slice(0, 40)]);
+    else if (/^spellName\d+$/.test(k) && lvl != null && spells.length < 60) spells.push({ l: lvl, n: v.slice(0, 40) }); // objects: Firestore can't store lists inside lists
   });
   const hd = (F.Total || '').match(/\d+d\d+/g) ? F.Total.slice(0, 40) : '';
   const conMod = parseInt(F.CONmod || '', 10);
