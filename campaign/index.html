@@ -16,7 +16,7 @@
   <div class="wrap">
     <a class="brand" href="#top" id="brand"></a>
     <div class="links">
-      <a href="#board">Job Board</a><a href="#party">Party</a><a href="#calendar">Calendar</a><a href="#map">Map</a><a href="#guide">New to D&amp;D?</a><a href="#log">Adventure Log</a><a href="../">Shroomy Games</a><a href="dm/" class="dmbtn" id="dmBtn" title="DM Kit (password)">DM</a>
+      <a href="#board">Job Board</a><a href="#party">Party</a><a href="#calendar">Calendar</a><a href="#handouts">Handouts</a><a href="#bag">Party Bag</a><a href="#journal">Journal</a><a href="#map">Map</a><a href="#guide">New to D&amp;D?</a><a href="#log">Adventure Log</a><a href="../">Shroomy Games</a><a href="dm/" class="dmbtn" id="dmBtn" title="DM Kit (password)">DM</a>
     </div>
   </div>
 </nav>
@@ -67,6 +67,8 @@
   </div>
 </section>
 
+<div id="turnBar" class="turnbar hidden" role="status" aria-live="polite"></div>
+
 <!-- CALENDAR -->
 <section id="calendar">
   <div class="wrap">
@@ -81,6 +83,15 @@
     </div>
   </div>
 </section>
+
+<!-- HANDOUTS -->
+<section id="handouts" class="alt">
+  <div class="wrap">
+    <div class="sec-head"><span id="hHand"></span><h2>Handouts</h2><p>Notes, letters and clues your heroes have found. Newest first.</p></div>
+    <div class="grid" id="handList"></div>
+  </div>
+</section>
+<div id="handPop" class="handpop hidden" role="dialog" aria-modal="true" aria-labelledby="handPopTitle"></div>
 
 <!-- MAP -->
 <section id="map">
@@ -131,6 +142,24 @@
 </section>
 
 <!-- LOG -->
+<!-- PARTY BAG -->
+<section id="bag">
+  <div class="wrap">
+    <div class="sec-head"><span id="hBag"></span><h2>Party Bag</h2><p>Shared gold and loot. Anyone in the party can add, change or hand things out.</p></div>
+    <div class="card" id="bagBox"><p class="muted">The bag opens once the live board is connected.</p></div>
+  </div>
+</section>
+
+<!-- JOURNAL -->
+<section id="journal" class="alt">
+  <div class="wrap">
+    <div class="sec-head"><span id="hJournal"></span><h2>Quest Journal</h2><p>People you've met, places you've been and jobs in progress.</p></div>
+    <div class="board-tabs" role="group" aria-label="Journal filter" id="jTabs" style="margin-bottom:12px">
+      <button data-j="quest" aria-pressed="true">Quests</button><button data-j="npc" aria-pressed="false">People</button><button data-j="place" aria-pressed="false">Places</button></div>
+    <div class="grid" id="jList"></div>
+  </div>
+</section>
+
 <section id="log">
   <div class="wrap">
     <div class="sec-head"><span id="hLog"></span><h2>Adventure Log</h2><p>What happened, session by session.</p></div>
@@ -288,17 +317,56 @@ function magicBlock(h, mine){
   const rest = mine ? `<div class="row2" style="margin-top:8px">${dice.length ? `<button class="btn small hpbtn" data-rest="hd">Spend a hit die</button>` : ''}<button class="btn small restbtn" data-rest="short">Short rest</button><button class="btn small restbtn long" data-rest="long">Long rest</button></div>${HERO_TOAST ? `<div class="toast">${esc(HERO_TOAST)}</div>` : ''}` : '';
   return rows || rest ? `<div class="trks">${rows}</div>${rest}${spellList}` : spellList;
 }
-let HERO_TOAST = '';
+let HERO_TOAST = '', COND_OPEN = '';
+// Conditions in plain words (based on the SRD 5.1 rules)
+const COND_INFO = {
+  Blinded: "You can't see. Attacks against you have advantage, and your attacks have disadvantage.",
+  Charmed: "You can't attack the one who charmed you, and they have advantage when talking you into things.",
+  Deafened: "You can't hear anything.",
+  Frightened: "Disadvantage on checks and attacks while you can see what scares you, and you can't move closer to it.",
+  Grappled: "Your speed is 0 until you break free (Athletics or Acrobatics against their Athletics).",
+  Incapacitated: "You can't take actions or reactions.",
+  Invisible: "Nobody can see you. Your attacks have advantage, and attacks against you have disadvantage.",
+  Paralyzed: "You can't move or act. Attacks against you have advantage, and hits from up close are critical hits.",
+  Petrified: "You're turned to stone. You can't move or act, and you resist most damage.",
+  Poisoned: "Disadvantage on attack rolls and ability checks.",
+  Prone: "You're on the ground. Standing up costs half your movement. Close attacks against you have advantage, ranged ones have disadvantage.",
+  Restrained: "Speed 0. Your attacks have disadvantage, attacks against you have advantage, and Dexterity saves have disadvantage.",
+  Stunned: "You can't move or act and can barely speak. Attacks against you have advantage.",
+  Unconscious: "You're knocked out and drop what you're holding. Attacks against you have advantage, and hits from up close are critical hits.",
+  Exhaustion: "You're worn out. Each level makes things harder, starting with disadvantage on ability checks. A long rest removes one level."
+};
+function heroExtras(h, mine){
+  const conds = Array.isArray(h.conds) ? h.conds.filter(c => COND_INFO[c]) : [];
+  let x = '';
+  if (h.insp) x += `<div class="row2" style="margin-top:6px;align-items:center"><span class="insp">${icon('crown')} Inspired!</span>${mine ? '<button class="btn small hpbtn" data-insp>Use it</button>' : ''}<small class="muted">Spend it for advantage on one roll.</small></div>`;
+  if (conds.length || mine) x += `<div class="conds">${conds.map(c => `<button class="cond" data-cinfo="${c}" aria-expanded="${COND_OPEN === h.id + c}">${c}${mine ? ` <span data-crm="${c}" aria-label="Remove ${c}">×</span>` : ''}</button>`).join('')}
+    ${mine ? `<select class="hsel csel" data-cadd aria-label="Add a condition"><option value="">+ condition</option>${Object.keys(COND_INFO).filter(c => !conds.includes(c)).map(c => `<option>${c}</option>`).join('')}</select>` : ''}</div>`;
+  const open = conds.find(c => COND_OPEN === h.id + c);
+  if (open) x += `<div class="toast"><b>${open}:</b> ${COND_INFO[open]}</div>`;
+  const max = +h.maxHp || 0, hp = h.hp === '' || h.hp == null ? max : +h.hp;
+  if (max && hp <= 0) {
+    const ds = h.ds || {}, sOK = Math.min(+ds.s || 0, 3), fOK = Math.min(+ds.f || 0, 3);
+    const state = fOK >= 3 ? 'Has fallen. Talk to your DM.' : sOK >= 3 ? 'Stable, but still unconscious.' : 'Down! Roll a death save at the start of each turn.';
+    const dots = (n, k) => [0, 1, 2].map(i => `<span class="dsd ${k}${i < n ? ' on' : ''}"></span>`).join('');
+    x += `<div class="deathbox"><b>Death saves</b> <span>${state}</span>
+      <div class="row2" style="align-items:center"><span>Saves ${dots(sOK, 'ok')}</span><span>Fails ${dots(fOK, 'bad')}</span></div>
+      ${mine && sOK < 3 && fOK < 3 ? '<div class="row2"><button class="btn small restbtn" data-ds="roll">Roll a death save</button><button class="btn small hpbtn" data-ds="hit">I took damage</button></div>' : ''}
+      ${mine && (sOK || fOK) ? '<button class="btn small hpbtn" data-ds="reset" style="margin-top:6px">Reset</button>' : ''}</div>`;
+  }
+  return x;
+}
 function heroCard(h){
   const mine = HERO_ON && h.id === window.BOARD.uid, max = +h.maxHp || 0, hp = Math.max(0, Math.min(h.hp === '' || h.hp == null ? max : +h.hp, max || 999));
   const pct = max ? Math.round(hp / max * 100) : 0, low = pct <= 25 ? ' low' : pct <= 50 ? ' mid' : '';
-  return `<div class="card pc herocard">
+  return `<div class="card pc herocard" data-hid="${esc(h.id)}">
   <div class="por">${icon(heroIcon(h.cls))}</div>
   <div style="flex:1"><h3>${esc(h.name || 'Unnamed hero')}</h3>
   <div>${h.species ? `<span class="tag">${esc(h.species)}</span>` : ''}<span class="tag">${esc(h.cls || '?')}</span>${h.level ? `<span class="tag">Level ${esc(h.level)}</span>` : ''}</div>
   <div class="hstats"><span title="Armor Class"><b>AC</b> ${esc(h.ac || '?')}</span><span title="Passive Perception"><b>PP</b> ${esc(h.pp || '?')}</span>${h.init ? `<span title="Initiative"><b>Init</b> ${esc(h.init)}</span>` : ''}</div>
   ${max ? `<div class="hpbar${low}" aria-label="Hit points ${hp} of ${max}"><span style="width:${pct}%"></span><em>HP ${hp} / ${max}</em></div>` : ''}
   ${mine && max ? `<div class="row2" style="margin-top:6px"><button class="btn small hpbtn" data-hp="-5">−5</button><button class="btn small hpbtn" data-hp="-1">−1</button><button class="btn small hpbtn" data-hp="1">+1</button><button class="btn small hpbtn" data-hp="5">+5</button><button class="btn small hpbtn" data-hp="full">Full</button></div>` : ''}
+  ${heroExtras(h, mine)}
   ${magicBlock(h, mine)}
   ${h.blurb ? `<p style="margin:6px 0 0">${esc(h.blurb)}</p>` : ''}
   <div class="muted" style="font-size:16px">${h.player ? 'Played by ' + esc(h.player) : ''}${h.link ? `${h.player ? ' · ' : ''}<a href="${esc(h.link)}" target="_blank" rel="noopener">Character sheet</a>` : ''}</div></div></div>`;
@@ -315,13 +383,29 @@ function drawParty(){
   document.querySelectorAll('[data-hp]').forEach(b => b.onclick = () => {
     const h = myHero(); if (!h) return; const max = +h.maxHp || 0, cur = h.hp === '' || h.hp == null ? max : +h.hp;
     const v = b.dataset.hp === 'full' ? max : Math.max(0, Math.min(max, cur + +b.dataset.hp));
-    h.hp = v; drawParty(); window.BOARD.patchHero({ hp: v }).catch(() => {});
+    const d = { hp: v }; if (v > 0 && h.ds && (h.ds.s || h.ds.f)) d.ds = { s: 0, f: 0 };
+    Object.assign(h, d); drawParty(); window.BOARD.patchHero(d).catch(() => {});
   });
   const patch = (h, d, toast) => { Object.assign(h, d); HERO_TOAST = toast || ''; drawParty(); window.BOARD.patchHero(d).catch(() => { HERO_TOAST = "Couldn't save that, check your connection."; drawParty(); }); };
   document.querySelectorAll('.herocard .pips:not(.ro) [data-pip]').forEach(b => b.onclick = () => {
     const h = myHero(); if (!h) return; const i = +b.dataset.i, n = +b.dataset.n, on = b.classList.contains('on');
     if (b.dataset.pip === 'slot') { const u = (h.slotsUsed || [0, 0, 0, 0, 0, 0, 0, 0, 0]).slice(); u[i] = Math.max(0, (+u[i] || 0) + (on ? 1 : -1)); patch(h, { slotsUsed: u }); }
     if (b.dataset.pip === 'res') { const r = (h.res || []).map(x => ({ ...x })); r[i].used = Math.max(0, (+r[i].used || 0) + (on ? 1 : -1)); patch(h, { res: r }); }
+  });
+  document.querySelectorAll('[data-cinfo]').forEach(b => b.onclick = e => {
+    const card = b.closest('.herocard'), h = (HEROES || []).find(x => x.id === card.dataset.hid); if (!h) return;
+    if (e.target.dataset.crm) { const me = myHero(); if (me) patch(me, { conds: (me.conds || []).filter(c => c !== e.target.dataset.crm) }); return; }
+    COND_OPEN = COND_OPEN === h.id + b.dataset.cinfo ? '' : h.id + b.dataset.cinfo; drawParty(); });
+  document.querySelectorAll('[data-cadd]').forEach(sel => sel.onchange = () => { const me = myHero(); if (me && sel.value) patch(me, { conds: [...new Set([...(me.conds || []), sel.value])].slice(0, 8) }); });
+  document.querySelectorAll('[data-insp]').forEach(b => b.onclick = () => { const me = myHero(); if (me) patch(me, { insp: false }, 'Inspiration used. Roll with advantage!'); });
+  document.querySelectorAll('[data-ds]').forEach(b => b.onclick = () => {
+    const me = myHero(); if (!me) return; const ds = { s: +(me.ds || {}).s || 0, f: +(me.ds || {}).f || 0 };
+    if (b.dataset.ds === 'reset') return patch(me, { ds: { s: 0, f: 0 } });
+    if (b.dataset.ds === 'hit') { ds.f = Math.min(3, ds.f + 1); return patch(me, { ds }, ds.f >= 3 ? 'Three fails. Talk to your DM.' : 'Taking damage at 0 HP counts as a failed save.'); }
+    const r = 1 + Math.floor(Math.random() * 20);
+    if (r === 20) return patch(me, { hp: 1, ds: { s: 0, f: 0 } }, 'NATURAL 20! You wake up with 1 HP!');
+    if (r === 1) ds.f = Math.min(3, ds.f + 2); else if (r >= 10) ds.s = Math.min(3, ds.s + 1); else ds.f = Math.min(3, ds.f + 1);
+    patch(me, { ds }, `Rolled ${r}: ${r === 1 ? 'a natural 1 counts as two fails' : r >= 10 ? 'success' : 'fail'}.${ds.s >= 3 ? ' You are stable.' : ds.f >= 3 ? ' Three fails. Talk to your DM.' : ''}`);
   });
   document.querySelectorAll('[data-rest]').forEach(b => b.onclick = () => {
     const h = myHero(); if (!h) return; const max = +h.maxHp || 0, cur = h.hp === '' || h.hp == null ? max : +h.hp, dice = hdList(h.hd), used = Math.min(+h.hdUsed || 0, dice.length);
@@ -564,8 +648,90 @@ $('#calNext').onclick = () => { CAL_VIEW = new Date(CAL_VIEW.getFullYear(), CAL_
 drawCal();
 window.BOARD.setEvents = list => { if (Array.isArray(list)) { EVENTS = list; drawCal(); } };
 
+// ----- live turn order (the DM's Combat tab) -----
+let COMBAT = null;
+function drawTurns(){
+  const c = COMBAT, bar = $('#turnBar');
+  if (!c || !c.on || !Array.isArray(c.order) || !c.order.length) { bar.classList.add('hidden'); document.body.classList.remove('infight'); return; }
+  const turn = Math.min(+c.turn || 0, c.order.length - 1), cur = c.order[turn], me = myHero();
+  const next = c.order.slice(turn + 1).concat(c.order.slice(0, turn)).find(x => !x.down);
+  const mine = me && cur && String(cur.n).trim().toLowerCase() === String(me.name || '').trim().toLowerCase();
+  bar.innerHTML = `<div class="tb-head"><b>${icon('crossed-swords')} Round ${esc(c.round || 1)}</b> <span>${mine ? '<span class="yourturn">Your turn!</span>' : `Now: <b>${esc(cur.n)}</b>`}${next && next !== cur ? ` · Next: ${esc(next.n)}` : ''}</span></div>
+    <div class="tb-list">${c.order.map((x, i) => `<span class="tb ${x.pc ? 'pc' : 'foe'}${i === turn ? ' now' : ''}${x.down ? ' down' : ''}">${esc(x.n)}${(x.conds || []).length ? ` <small>${x.conds.map(esc).join(', ')}</small>` : ''}</span>`).join('')}</div>`;
+  bar.classList.remove('hidden'); document.body.classList.add('infight');
+  const now = bar.querySelector('.tb.now'); if (now) now.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+window.BOARD.setCombat = c => { COMBAT = c; drawTurns(); };
+
+// ----- handouts (the DM reveals them from the Live Board) -----
+$('#hHand').innerHTML = icon('scroll-unfurled');
+let HANDOUTS = [];
+const seenH = () => { try { return JSON.parse(localStorage.getItem('cc_seen_handouts') || '[]'); } catch (e) { return []; } };
+const markSeen = id => { try { const a = seenH(); if (!a.includes(id)) localStorage.setItem('cc_seen_handouts', JSON.stringify(a.concat(id).slice(-200))); } catch (e) {} };
+const safeImg = u => /^https:\/\/[^\s"'<>]+$/i.test(String(u || '')) ? u : '';
+function handoutHtml(h, big){
+  const img = safeImg(h.img);
+  return `<div class="handout hs-${h.style === 'wizard' ? 'wizard' : h.style === 'letter' ? 'letter' : 'note'}${big ? ' big' : ''}">
+    <h3${big ? ' id="handPopTitle"' : ''}>${esc(h.title || 'A handout')}</h3>
+    ${img ? `<img src="${esc(img)}" alt="${esc(h.title || 'Handout picture')}" loading="lazy">` : ''}
+    ${h.text ? `<p>${esc(h.text).replace(/\n/g, '<br>')}</p>` : ''}</div>`;
+}
+function drawHandouts(){
+  const list = HANDOUTS.slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+  $('#handList').innerHTML = list.length ? list.map(h => handoutHtml(h)).join('') : '<p class="muted">Nothing yet. When your heroes find a letter or a clue, it shows up here.</p>';
+  const fresh = list.find(h => !seenH().includes(h.id) && h.at && Date.now() - Date.parse(h.at) < 12 * 3600e3);
+  const pop = $('#handPop');
+  if (fresh) { pop.innerHTML = `<div class="handpop-in"><div class="muted" style="color:var(--gold)">${icon('scroll-unfurled')} New handout!</div>${handoutHtml(fresh, true)}<button class="btn green" id="handOk">Got it</button></div>`;
+    pop.classList.remove('hidden'); $('#handOk').onclick = () => { markSeen(fresh.id); pop.classList.add('hidden'); drawHandouts(); }; $('#handOk').focus(); }
+  else pop.classList.add('hidden');
+}
+drawHandouts();
+window.BOARD.setHandouts = l => { HANDOUTS = Array.isArray(l) ? l : []; drawHandouts(); };
+
 // ----- log -----
-$('#logList').innerHTML = C.log.map(l => `<div class="card entry"><h3>Session ${l.n}: ${esc(l.title)}<small>${esc(l.date)}</small></h3><p style="margin:6px 0 0">${esc(l.text)}</p></div>`).join('');
+function drawLog(list){ $('#logList').innerHTML = (list || []).slice().sort((a, b) => (+b.n || 0) - (+a.n || 0)).map(l => `<div class="card entry"><h3>Session ${esc(l.n)}: ${esc(l.title)}<small>${esc(l.date)}</small></h3><p style="margin:6px 0 0">${esc(l.text).replace(/\n/g, '<br>')}</p></div>`).join('') || '<p class="muted">No sessions yet.</p>'; }
+drawLog(C.log);
+window.BOARD.setLog = l => { if (Array.isArray(l) && l.length) drawLog(l); };
+
+// ----- quest journal (the DM adds entries from the Live Board) -----
+$('#hJournal').innerHTML = icon('open-book');
+let JOURNAL = [], JTAB = 'quest';
+function drawJournal(){
+  const list = JOURNAL.filter(e => (e.kind || 'quest') === JTAB).sort((a, b) => (a.status === 'done') - (b.status === 'done') || String(a.name).localeCompare(String(b.name)));
+  const empty = { quest: "No quests yet. Pick a job from the board!", npc: "You haven't met anyone worth writing down yet.", place: "No places explored yet." }[JTAB];
+  $('#jList').innerHTML = list.length ? list.map(e => `<div class="card jentry${e.status === 'done' ? ' done' : ''}"><h3>${esc(e.name)}${e.kind === 'quest' ? `<span class="tag">${e.status === 'done' ? 'Done' : 'In progress'}</span>` : ''}</h3>${e.text ? `<p style="margin:6px 0 0">${esc(e.text).replace(/\n/g, '<br>')}</p>` : ''}</div>`).join('') : `<p class="muted">${empty}</p>`;
+  document.querySelectorAll('#jTabs [data-j]').forEach(b => b.setAttribute('aria-pressed', b.dataset.j === JTAB));
+}
+document.querySelectorAll('#jTabs [data-j]').forEach(b => b.onclick = () => { JTAB = b.dataset.j; drawJournal(); });
+drawJournal();
+window.BOARD.setJournal = l => { JOURNAL = Array.isArray(l) ? l : []; drawJournal(); };
+
+// ----- party bag: shared coins and loot, anyone in the party can edit -----
+$('#hBag').innerHTML = icon('swap-bag');
+let BAG = null, BAG_MSG = '';
+const BAG_EMPTY = { gp: 0, sp: 0, cp: 0, items: [] };
+function drawBag(){
+  if (!BAG || !window.BOARD.saveBag) return;
+  const b = BAG, coin = (k, label) => `<div class="coin"><b>${label}</b><span class="cval">${+b[k] || 0}</span>
+    <span class="row2"><button class="btn small hpbtn" data-coin="${k}" data-d="-10">−10</button><button class="btn small hpbtn" data-coin="${k}" data-d="-1">−1</button><button class="btn small hpbtn" data-coin="${k}" data-d="1">+1</button><button class="btn small hpbtn" data-coin="${k}" data-d="10">+10</button></span></div>`;
+  $('#bagBox').innerHTML = `<div class="coins">${coin('gp', 'Gold')}${coin('sp', 'Silver')}${coin('cp', 'Copper')}</div>
+    <h3 style="margin-top:14px">Loot</h3>
+    ${(b.items || []).length ? `<div class="bagitems">${b.items.map(it => `<div class="bagitem" data-iid="${esc(it.id)}"><span class="bq">${+it.q || 1}×</span><span style="flex:1"><b>${esc(it.n)}</b>${it.who ? ` <span class="muted">· ${esc(it.who)} has it</span>` : ''}${it.note ? `<br><small>${esc(it.note)}</small>` : ''}</span>
+      <button class="btn small hpbtn" data-iq="-1" aria-label="One less">−</button><button class="btn small hpbtn" data-iq="1" aria-label="One more">+</button><button class="btn small hpbtn" data-iwho aria-label="Who has it">Who</button></div>`).join('')}</div>` : '<p class="muted">The bag is empty. For now.</p>'}
+    <div class="row2" style="margin-top:10px"><input id="bagN" maxlength="60" placeholder="Item (e.g. Copper Scale)" style="flex:2 1 160px"><input id="bagQ" type="number" min="1" max="999" value="1" inputmode="numeric" style="flex:0 1 70px" aria-label="How many"><input id="bagWho" maxlength="40" placeholder="Who has it?" style="flex:1 1 120px"><button class="btn green small" id="bagAdd">Add</button></div>
+    <input id="bagNote" maxlength="120" placeholder="Note (optional): warm to the touch, worth 10 gp..." style="width:100%;margin-top:6px">
+    ${BAG_MSG ? `<div class="toast">${esc(BAG_MSG)}</div>` : ''}`;
+  const save = (nb, msg) => { BAG = nb; BAG_MSG = msg || ''; drawBag(); window.BOARD.saveBag(nb).catch(() => { BAG_MSG = "Couldn't save. Ask the DM to switch the bag on."; drawBag(); }); };
+  document.querySelectorAll('[data-coin]').forEach(x => x.onclick = () => { const k = x.dataset.coin; save({ ...BAG, [k]: Math.max(0, Math.min(999999, (+BAG[k] || 0) + +x.dataset.d)) }); });
+  $('#bagAdd').onclick = () => { const n = $('#bagN').value.trim(); if (!n) return;
+    save({ ...BAG, items: (BAG.items || []).concat({ id: 'i' + Date.now().toString(36), n: n.slice(0, 60), q: Math.max(1, Math.min(999, +$('#bagQ').value || 1)), who: $('#bagWho').value.trim().slice(0, 40), note: $('#bagNote').value.trim().slice(0, 120) }).slice(-60) }, 'Added ' + n + '!'); };
+  document.querySelectorAll('.bagitem').forEach(row => { const id = row.dataset.iid, items = () => (BAG.items || []).map(x => ({ ...x }));
+    row.querySelectorAll('[data-iq]').forEach(x => x.onclick = () => { let it = items(); const i = it.find(y => y.id === id); i.q = (+i.q || 1) + +x.dataset.iq;
+      if (i.q <= 0) { if (!confirm('Remove ' + i.n + ' from the bag?')) return; it = it.filter(y => y.id !== id); } save({ ...BAG, items: it }); });
+    row.querySelector('[data-iwho]').onclick = () => { const it = items(), i = it.find(y => y.id === id); const w = prompt('Who is carrying ' + i.n + '?', i.who || ''); if (w === null) return; i.who = w.trim().slice(0, 40); save({ ...BAG, items: it }); };
+  });
+}
+window.BOARD.setBag = b => { if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#bagBox') && BAG) { BAG = b || BAG_EMPTY; return; } BAG = b || BAG_EMPTY; drawBag(); };
 </script>
 <script type="module">
 // Live board: anonymous sign-in for players, live notices and votes from Firestore
@@ -594,6 +760,14 @@ try {
       const m = {}; snap.docs.forEach(d => m[d.id] = d.data()); window.BOARD.setAvailAll(m); window.BOARD.availReady();
     }, () => {});
   }
+  L.onSnapshot(L.doc(L.db, 'meta', 'journal'), d => window.BOARD.setJournal(d.exists() ? d.data().entries : []), () => {});
+  L.onSnapshot(L.doc(L.db, 'meta', 'log'), d => { if (d.exists()) window.BOARD.setLog(d.data().entries); }, () => {});
+  if (uid()) {
+    window.BOARD.saveBag = b => L.setDoc(L.doc(L.db, 'partybag', 'main'), { gp: b.gp || 0, sp: b.sp || 0, cp: b.cp || 0, items: b.items || [] });
+    L.onSnapshot(L.doc(L.db, 'partybag', 'main'), d => window.BOARD.setBag(d.exists() ? d.data() : null), () => {});
+  }
+  L.onSnapshot(L.doc(L.db, 'meta', 'handouts'), d => window.BOARD.setHandouts(d.exists() ? d.data().list : []), () => {});
+  L.onSnapshot(L.doc(L.db, 'meta', 'combat'), d => window.BOARD.setCombat(d.exists() ? d.data() : null), () => {});
   L.onSnapshot(L.doc(L.db, 'meta', 'calendar'), d => { if (d.exists()) window.BOARD.setEvents(d.data().events); }, () => {});
 } catch (e) { console.warn('Live board unavailable, showing the saved notices.', e); }
 </script>

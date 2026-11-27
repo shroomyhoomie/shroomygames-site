@@ -175,3 +175,55 @@ b.av-yes{color:var(--leaf2)}b.av-maybe{color:var(--copper)}b.av-no{color:var(--r
 .spells{margin-top:8px;font-size:17px}.spells summary{cursor:pointer;font:17px Jua,sans-serif;color:var(--plum)}
 .hsel{font:16px Gaegu;font-weight:700;border:3px solid var(--wood2);border-radius:10px;background:#fffaf0;min-height:44px;padding:0 6px}
 .resrow input{font:18px Gaegu;font-weight:700;border:3px solid var(--wood2);border-radius:10px;padding:6px 10px;background:#fffaf0;color:var(--ink);min-height:44px}
+.conds{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center}
+.cond{font:15px Jua,sans-serif;background:var(--coral);color:#fff;border:2px solid var(--wood2);border-radius:10px;padding:2px 8px;min-height:32px;cursor:pointer}
+.cond span{margin-left:4px;font-weight:700}
+.csel{min-height:34px;font-size:15px}
+.insp{display:inline-flex;align-items:center;gap:4px;background:var(--gold);border:2px solid var(--wood2);border-radius:10px;padding:2px 10px;font:16px Jua,sans-serif}
+.deathbox{margin-top:8px;background:#2c2440;color:var(--cream);border-radius:12px;padding:8px 12px;display:grid;gap:6px}
+.dsd{display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid var(--cream);margin-left:3px;vertical-align:-2px}
+.dsd.ok.on{background:var(--leaf)}.dsd.bad.on{background:var(--red)}
+/* ---------- live turn order ---------- */
+.turnbar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--night);color:var(--cream);border-top:4px solid var(--gold);padding:8px 12px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 18px rgba(0,0,0,.3)}
+body.infight{padding-bottom:110px}
+.tb-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:17px}.tb-head b{font-family:Jua,sans-serif;font-weight:400;color:var(--gold)}
+.yourturn{background:var(--gold);color:var(--ink);border-radius:8px;padding:0 8px;font:17px Jua,sans-serif;animation:pulse 1s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.08)}}
+.tb-list{display:flex;gap:6px;overflow-x:auto;margin-top:6px;padding-bottom:2px}
+.tb{flex:none;border:2px solid var(--cream);border-radius:10px;padding:2px 10px;font:16px Jua,sans-serif;opacity:.85}
+.tb.pc{border-color:var(--leaf)}.tb.foe{border-color:var(--coral)}
+.tb.now{background:var(--gold);color:var(--ink);opacity:1;border-color:var(--gold)}
+.tb.down{text-decoration:line-through;opacity:.4}
+.tb small{font:13px Gaegu;opacity:.9}
+/* ---------- handouts ---------- */
+.handout{border:3px solid var(--wood2);border-radius:6px;padding:16px 18px;box-shadow:0 5px 0 var(--wood2);transform:rotate(-.6deg)}
+.handout:nth-child(even){transform:rotate(.7deg)}
+.handout h3{font-size:22px;margin-bottom:6px}.handout p{margin:6px 0 0;white-space:normal}
+.handout img{display:block;max-width:100%;border-radius:6px;border:2px solid var(--wood2);margin-top:6px}
+.hs-note{background:#fff8e6}
+.hs-letter{background:#f6e7c1;font-style:italic;border-style:double;border-width:6px}
+.hs-wizard{background:#e8dcf2;border-color:var(--plum);box-shadow:0 5px 0 var(--plum)}
+.handpop{position:fixed;inset:0;z-index:80;background:rgba(20,14,30,.72);display:grid;place-items:center;padding:16px}
+.handpop-in{max-width:520px;width:100%;max-height:90vh;overflow:auto;display:grid;gap:12px}
+.handout.big{transform:none}
+/* ---------- party bag + journal ---------- */
+.coins{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.coin{display:grid;gap:4px;background:var(--paper2);border:3px solid var(--wood2);border-radius:12px;padding:8px 10px}
+.coin b{font:18px Jua,sans-serif;font-weight:400}.cval{font:30px Jua,sans-serif;color:var(--copper)}
+.bagitems{display:grid;gap:6px;margin-top:6px}
+.bagitem{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-top:2px dashed var(--wood2);padding-top:6px}
+.bq{font:20px Jua,sans-serif;min-width:36px;color:var(--plum)}
+#bagBox input{font:18px Gaegu;font-weight:700;border:3px solid var(--wood2);border-radius:10px;padding:6px 10px;background:#fffaf0;color:var(--ink);min-height:44px}
+.jentry.done{opacity:.65}.jentry h3 .tag{margin-left:8px;font-size:14px;vertical-align:middle}
+/* phones: one scrolling row of menu links, compact coins */
+@media (max-width:900px){
+  nav .wrap{flex-wrap:nowrap;gap:10px;min-height:54px}
+  nav .brand{flex:none;font-size:19px}
+  nav .links{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-left:0;padding:4px 0}
+  nav .links::-webkit-scrollbar{display:none}
+  nav .links a{flex:none;white-space:nowrap}
+  html{scroll-padding-top:64px}
+}
+.coins{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.coin .row2 .btn{min-width:0;padding:4px 8px;font-size:15px;min-height:36px}
+.bagitem .btn{min-width:0;padding:4px 10px;min-height:38px}
