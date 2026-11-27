@@ -152,10 +152,34 @@ $('#hMap').innerHTML = icon('treasure-map');
 $('#hGuide').innerHTML = icon('open-book');
 $('#hLog').innerHTML = icon('sands-of-time');
 $('#dmBtn').innerHTML = icon('key') + ' DM';
-function drawNext(){ $('#nextUp').innerHTML = `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+// Session date helpers. next.at is local wall time like "2026-12-05T18:00" (no time zone, so calendars use the viewer's own).
+function nextStart(){ const a = C.next && C.next.at; if (!a || !/^\d{4}-\d\d-\d\dT\d\d:\d\d/.test(a)) return null; const d = new Date(a.slice(0, 16)); return isNaN(d) ? null : d; }
+function calStamp(d){ const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`; }
+function countdown(d){ const now = new Date(), day = 864e5;
+  const a = new Date(now.getFullYear(), now.getMonth(), now.getDate()), b = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const n = Math.round((b - a) / day);
+  if (d < now && now - d < 4 * 3600e3) return 'Happening now!';
+  if (d < now) return '';
+  return n === 0 ? 'Tonight!' : n === 1 ? 'Tomorrow!' : `In ${n} days`; }
+function calLinks(d){
+  const end = new Date(d.getTime() + 3 * 3600e3), title = 'Copper & Curios: ' + (C.next.what || 'D&D'), where = C.next.where && C.next.where !== 'TBD' ? C.next.where : '';
+  const details = 'Critical Company D&D night. Job board and map: https://shroomygames.com/campaign/';
+  const esc2 = s => String(s).replace(/[\\,;]/g, m => '\\' + m).replace(/\n/g, '\\n');
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//shroomygames//copper-and-curios//EN', 'BEGIN:VEVENT',
+    'UID:cc-' + calStamp(d) + '@shroomygames.com', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
+    'DTSTART:' + calStamp(d), 'DTEND:' + calStamp(end), 'SUMMARY:' + esc2(title), where ? 'LOCATION:' + esc2(where) : '', 'DESCRIPTION:' + esc2(details),
+    'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc2(title), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+  const g = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(title) + '&dates=' + calStamp(d) + '/' + calStamp(end)
+    + '&details=' + encodeURIComponent(details) + (where ? '&location=' + encodeURIComponent(where) : '');
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <a class="btn green small" href="data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}" download="copper-and-curios.ics">Add to my calendar</a>
+    <a class="btn plank small" href="${g}" target="_blank" rel="noopener">Google Calendar</a></div>`; }
+function drawNext(){ const d = nextStart(), cd = d ? countdown(d) : '';
+  $('#nextUp').innerHTML = `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
   <span style="color:var(--gold)">${icon('lantern-flame')}</span>
-  <div><div class="jua" style="font-size:22px;color:var(--gold)">Next session</div>
-  <div>${esc(C.next.what)}</div><div class="muted">${esc(C.next.when)} · ${esc(C.next.where)}</div></div></div>`; }
+  <div><div class="jua" style="font-size:22px;color:var(--gold)">Next session${cd ? ` <span style="font-size:17px;color:var(--cream)">· ${esc(cd)}</span>` : ''}</div>
+  <div>${esc(C.next.what)}</div><div class="muted">${esc(C.next.when)} · ${esc(C.next.where)}</div>
+  ${d && cd ? calLinks(d) : ''}</div></div>`; }
 drawNext();
 
 // ----- modal -----

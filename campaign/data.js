@@ -10,8 +10,8 @@ window.CAMPAIGN = {
   tagline: "A D&D 5e adventure for brand new heroes",
   pitch: "Hollowmere is a sleepy lakeside town where the fish are fat, the bread is warm and nothing exciting ever happens. Lately, though, something small and scaly has been raiding the mill at night, strange lights drift under the lake, and a very odd wizard has bought the crooked tower on the hill. The town needs help. The job board is full.",
 
-  // Next session: update after each session
-  next: { when: "Saturday, December 5 at 6pm", where: "TBD", what: "Session Zero: make characters, then your first evening in Hollowmere" },
+  // Next session: update after each session. at = local date and time "YYYY-MM-DDTHH:MM" (powers the countdown and calendar buttons)
+  next: { at: "2026-12-05T18:00", when: "Saturday, December 5 at 6pm", where: "TBD", what: "Session Zero: make characters, then your first evening in Hollowmere" },
 
   // ---------- JOB BOARD ----------
   // status: "open", "taken" or "done". danger: 0 (safe) to 3 (deadly-ish)
