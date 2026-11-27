@@ -60,10 +60,11 @@
 <!-- PARTY -->
 <section id="party" class="alt">
   <div class="wrap">
-    <div class="sec-head"><span id="hParty"></span><h2 id="partyTitle">The Party</h2><p>Our heroes, live. Players: claim your hero and import your D&amp;D Beyond sheet so everyone sees your stats.</p></div>
+    <div class="sec-head"><span id="hParty"></span><h2 id="partyTitle">The Party</h2><p>Our heroes, live. <b>Players: add your own hero!</b> Import your D&amp;D Beyond sheet and everyone sees your stats, HP and spell slots during the game.</p></div>
     <div id="heroBar" class="hidden" style="margin-bottom:16px"><button class="btn green" id="claimBtn"></button></div>
     <div id="heroEdit"></div>
     <div class="grid" id="partyGrid"></div>
+    <div id="backupWrap" class="hidden"><h3 style="margin:26px 0 4px">Backup heroes</h3><p class="muted" style="margin:0 0 12px">Ready-made heroes the DM can hand you if yours falls, or who might join the adventure.</p><div class="grid" id="backupGrid"></div></div>
   </div>
 </section>
 
@@ -372,14 +373,23 @@ function heroCard(h){
   <div class="muted" style="font-size:16px">${h.player ? 'Played by ' + esc(h.player) : ''}${h.link ? `${h.player ? ' · ' : ''}<a href="${esc(h.link)}" target="_blank" rel="noopener">Character sheet</a>` : ''}</div></div></div>`;
 }
 function drawParty(){
-  const live = HEROES && HEROES.length;
-  $('#partyGrid').innerHTML = live ? HEROES.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(heroCard).join('')
+  const sorted = (HEROES || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const players = sorted.filter(h => !String(h.id).startsWith('dm-')), backups = sorted.filter(h => String(h.id).startsWith('dm-'));
+  const live = HERO_ON || players.length;
+  const addCard = HERO_ON && !myHero() && !EDITING ? `<button class="card addhero" id="addHeroCard">
+    <span class="plus">+</span><span class="jua" style="font-size:24px">Your hero goes here</span>
+    <span>1. On D&amp;D Beyond: <b>Manage</b>, then <b>Export to PDF</b><br>2. Tap here and pick that PDF<br>3. Check your stats and save</span>
+    <span class="muted">No D&amp;D Beyond? You can type your stats in instead.</span></button>` : '';
+  $('#backupWrap').classList.toggle('hidden', !backups.length);
+  $('#backupGrid').innerHTML = backups.map(heroCard).join('');
+  $('#partyGrid').innerHTML = live ? players.map(heroCard).join('') + addCard
     : C.party.map(p => `<div class="card pc">
   <div class="por">${icon(p.icon || 'hood')}</div>
   <div><h3>${esc(p.name)}</h3><div><span class="tag">${esc(p.race)}</span><span class="tag">${esc(p.cls)}</span><span class="tag">Level ${p.level}</span></div>
   <p style="margin:6px 0 0">${esc(p.blurb)}</p>${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">Character sheet</a>` : ''}</div></div>`).join('');
   $('#heroBar').classList.toggle('hidden', !HERO_ON || EDITING);
-  $('#claimBtn').innerHTML = icon('shield') + (myHero() ? ' Update my hero' : ' Claim your hero');
+  $('#claimBtn').innerHTML = icon('shield') + (myHero() ? ' Update my hero' : ' Add my hero');
+  if ($('#addHeroCard')) $('#addHeroCard').onclick = () => $('#claimBtn').click();
   document.querySelectorAll('[data-hp]').forEach(b => b.onclick = () => {
     const h = myHero(); if (!h) return; const max = +h.maxHp || 0, cur = h.hp === '' || h.hp == null ? max : +h.hp;
     const v = b.dataset.hp === 'full' ? max : Math.max(0, Math.min(max, cur + +b.dataset.hp));
@@ -432,7 +442,7 @@ const HFIELDS = [['name', 'Character name', 'Eden'], ['player', 'Your name', 'Je
 function drawHeroEdit(prefill){
   if (!EDITING) { $('#heroEdit').innerHTML = ''; return; }
   const h = prefill || myHero() || {};
-  $('#heroEdit').innerHTML = `<div class="card" style="margin-bottom:18px"><h3>${myHero() ? 'Update your hero' : 'Claim your hero'}</h3>
+  $('#heroEdit').innerHTML = `<div class="card" style="margin-bottom:18px"><h3>${myHero() ? 'Update your hero' : 'Add your hero'}</h3>
     <div class="voteBox"><b>Fastest way: import from D&amp;D Beyond</b>
       <p style="margin:4px 0">On D&amp;D Beyond, open your character, tap <b>Manage</b> by its name, then <b>Export to PDF</b> and download it. Then pick that file here:</p>
       <input type="file" id="pdfIn" accept="application/pdf,.pdf" style="font:16px Gaegu;max-width:100%">

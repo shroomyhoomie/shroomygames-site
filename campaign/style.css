@@ -227,3 +227,6 @@ body.infight{padding-bottom:110px}
 .coins{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
 .coin .row2 .btn{min-width:0;padding:4px 8px;font-size:15px;min-height:36px}
 .bagitem .btn{min-width:0;padding:4px 10px;min-height:38px}
+.addhero{display:grid;gap:8px;justify-items:center;text-align:center;border-style:dashed;background:rgba(255,248,230,.6);cursor:pointer;font:18px Gaegu,"Comic Sans MS",system-ui,sans-serif;color:var(--ink);box-shadow:none;min-height:220px;align-content:center}
+.addhero:hover{background:#fff8e6}
+.addhero .plus{width:56px;height:56px;border-radius:50%;background:var(--leaf);color:var(--cream);font:40px/52px Jua,sans-serif;border:3px solid var(--wood2)}
