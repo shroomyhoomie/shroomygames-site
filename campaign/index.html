@@ -68,7 +68,7 @@
 <!-- CALENDAR -->
 <section id="calendar">
   <div class="wrap">
-    <div class="sec-head"><span id="hCal"></span><h2>Calendar</h2><p>Game nights and other happenings. Tap a day to see what's on, or add it to your own calendar.</p></div>
+    <div class="sec-head"><span id="hCal"></span><h2>Calendar</h2><p>Game nights and other happenings. Tap any day to say if you can make it, see who's free, or add an event to your own calendar. The green number shows how many can make it.</p></div>
     <div class="calwrap">
       <div class="card calbox">
         <div class="calnav"><button class="mini" id="calPrev" aria-label="Previous month">&#9664;</button><h3 id="calMonth"></h3><button class="mini" id="calNext" aria-label="Next month">&#9654;</button></div>
@@ -322,6 +322,7 @@ $('#rules').innerHTML = C.rules.map(r => `<li>${esc(r)}</li>`).join('');
 // Events: { id, date: "YYYY-MM-DD", time: "18:00" (optional), title, where, note, kind: "session" | "event" }
 $('#hCal').innerHTML = icon('sands-of-time');
 let EVENTS = (C.events || []).slice(), CAL_VIEW = null, CAL_DAY = null;
+let AVAIL = {}, AV_ON = false, AV_MSG = '';
 const pad2 = n => String(n).padStart(2, '0');
 const dayKey = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 function allEvents(){
@@ -351,7 +352,8 @@ function drawCal(){
   for (let i = 1; i <= days; i++) {
     const k = `${y}-${pad2(m + 1)}-${pad2(i)}`, list = byDay[k] || [];
     const cls = ['calday', k === dayKey(today) ? 'today' : '', k === CAL_DAY ? 'sel' : '', list.length ? 'has' : ''].join(' ');
-    h += `<button class="${cls}" data-day="${k}" aria-label="${k}${list.length ? ', ' + list.length + ' event' + (list.length > 1 ? 's' : '') : ''}">${i}${list.length ? `<span class="dots">${list.slice(0, 3).map(e => `<span class="dot k-${e.kind === 'session' ? 'session' : 'event'}"></span>`).join('')}</span>` : ''}</button>`;
+    const yes = availOn(k).yes.length;
+    h += `<button class="${cls}" data-day="${k}" aria-label="${k}${list.length ? ', ' + list.length + ' event' + (list.length > 1 ? 's' : '') : ''}${yes ? ', ' + yes + ' free' : ''}">${i}${yes ? `<span class="freeN" title="${yes} can make it">${yes}</span>` : ''}${list.length ? `<span class="dots">${list.slice(0, 3).map(e => `<span class="dot k-${e.kind === 'session' ? 'session' : 'event'}"></span>`).join('')}</span>` : ''}</button>`;
   }
   $('#calGrid').innerHTML = h;
   $('#calGrid').querySelectorAll('.calday').forEach(b => b.onclick = () => { CAL_DAY = CAL_DAY === b.dataset.day ? null : b.dataset.day; drawCal(); });
@@ -359,8 +361,39 @@ function drawCal(){
   if (CAL_DAY) { show = byDay[CAL_DAY] || []; title = new Date(CAL_DAY + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); }
   else { const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()); show = evs.filter(e => evStart(e) >= start).slice(0, 6); title = 'Coming up'; }
   $('#calListTitle').textContent = title;
-  $('#calList').innerHTML = show.length ? show.map(evCard).join('') : `<p class="muted">${CAL_DAY ? 'Nothing on this day.' : 'Nothing scheduled yet. Check back soon!'}</p>`;
+  $('#calList').innerHTML = (CAL_DAY ? availBox(CAL_DAY) : '') + (show.length ? show.map(evCard).join('') : `<p class="muted">${CAL_DAY ? 'Nothing scheduled on this day.' : 'Nothing scheduled yet. Check back soon!'}</p>`)
+    + (CAL_DAY ? '' : `<p class="muted" style="font-size:16px">Tap any day to say if you can make it.</p>`);
+  wireAvail();
 }
+// ----- availability: players mark days yes / maybe / no -----
+const AV_LABEL = { yes: 'Can make it', maybe: 'Maybe', no: "Can't make it" };
+function availOn(day){ const r = { yes: [], maybe: [], no: [] };
+  Object.entries(AVAIL).forEach(([uid, a]) => { const v = a && a.days && a.days[day]; if (r[v]) r[v].push({ uid, name: a.name || 'Someone' }); });
+  return r; }
+function availBox(day){
+  const r = availOn(day), mine = AV_ON && AVAIL[window.BOARD.uid] && AVAIL[window.BOARD.uid].days ? AVAIL[window.BOARD.uid].days[day] : '';
+  const past = day < dayKey(new Date());
+  const lists = ['yes', 'maybe', 'no'].map(v => r[v].length ? `<div><b class="av-${v}">${AV_LABEL[v]}:</b> ${r[v].map(x => `<span class="vname">${esc(x.name)}</span>`).join(' ')}</div>` : '').join('');
+  const picker = !AV_ON || past ? '' : `
+    <label for="avName" style="display:block;margin-top:8px">Your name</label>
+    <div class="row2"><input id="avName" maxlength="40" value="${esc((AVAIL[window.BOARD.uid] || {}).name || myName())}" placeholder="e.g. Jess"></div>
+    <div class="row2" style="margin-top:8px">${['yes', 'maybe', 'no'].map(v => `<button class="btn small avbtn av-${v}${mine === v ? ' on' : ''}" data-av="${v}" aria-pressed="${mine === v}">${AV_LABEL[v]}</button>`).join('')}
+    ${mine ? '<button class="btn plank small" data-av="">Clear</button>' : ''}</div>`;
+  return `<div class="voteBox" style="margin:0 0 14px"><b>Who's free?</b>${lists || '<div class="muted">Nobody has marked this day yet.</div>'}${picker}${AV_MSG ? `<div style="margin-top:6px">${esc(AV_MSG)}</div>` : ''}</div>`;
+}
+function wireAvail(){
+  document.querySelectorAll('[data-av]').forEach(b => b.onclick = async () => {
+    const name = ($('#avName') && $('#avName').value.trim()) || '';
+    if (!name) { AV_MSG = 'Type your name first so everyone knows who you are.'; drawCal(); return; }
+    try { localStorage.setItem('cc_name', name); } catch (e) {}
+    const cur = AVAIL[window.BOARD.uid] || { days: {} }, days = { ...(cur.days || {}) };
+    if (b.dataset.av) days[CAL_DAY] = b.dataset.av; else delete days[CAL_DAY];
+    const today = dayKey(new Date()); Object.keys(days).forEach(k => { if (k < today) delete days[k]; }); // tidy old days
+    try { await window.BOARD.setAvail(name, days); AV_MSG = ''; }
+    catch (e) { AV_MSG = "Couldn't save that. Ask the DM to switch availability on."; drawCal(); }
+  }); }
+window.BOARD.availReady = () => { AV_ON = true; drawCal(); };
+window.BOARD.setAvailAll = m => { AVAIL = m || {}; drawCal(); };
 $('#calPrev').onclick = () => { CAL_VIEW = new Date(CAL_VIEW.getFullYear(), CAL_VIEW.getMonth() - 1, 1); CAL_DAY = null; drawCal(); };
 $('#calNext').onclick = () => { CAL_VIEW = new Date(CAL_VIEW.getFullYear(), CAL_VIEW.getMonth() + 1, 1); CAL_DAY = null; drawCal(); };
 drawCal();
@@ -384,6 +417,13 @@ try {
     window.BOARD.setLive(true);
   }, () => {});
   L.onSnapshot(L.doc(L.db, 'meta', 'next'), d => { if (d.exists()) window.BOARD.setNext(d.data()); }, () => {});
+  if (uid()) {
+    window.BOARD.uid = window.BOARD.uid || uid();
+    window.BOARD.setAvail = (name, days) => L.setDoc(L.doc(L.db, 'availability', uid()), { name, days });
+    L.onSnapshot(L.collection(L.db, 'availability'), snap => {
+      const m = {}; snap.docs.forEach(d => m[d.id] = d.data()); window.BOARD.setAvailAll(m); window.BOARD.availReady();
+    }, () => {});
+  }
   L.onSnapshot(L.doc(L.db, 'meta', 'calendar'), d => { if (d.exists()) window.BOARD.setEvents(d.data().events); }, () => {});
 } catch (e) { console.warn('Live board unavailable, showing the saved notices.', e); }
 </script>
