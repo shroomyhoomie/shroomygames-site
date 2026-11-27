@@ -16,7 +16,7 @@
   <div class="wrap">
     <a class="brand" href="#top" id="brand"></a>
     <div class="links">
-      <a href="#board">Job Board</a><a href="#party">Party</a><a href="#map">Map</a><a href="#guide">New to D&amp;D?</a><a href="#log">Adventure Log</a><a href="../">Shroomy Games</a><a href="dm/" class="dmbtn" id="dmBtn" title="DM Kit (password)">DM</a>
+      <a href="#board">Job Board</a><a href="#party">Party</a><a href="#calendar">Calendar</a><a href="#map">Map</a><a href="#guide">New to D&amp;D?</a><a href="#log">Adventure Log</a><a href="../">Shroomy Games</a><a href="dm/" class="dmbtn" id="dmBtn" title="DM Kit (password)">DM</a>
     </div>
   </div>
 </nav>
@@ -62,6 +62,21 @@
   <div class="wrap">
     <div class="sec-head"><span id="hParty"></span><h2 id="partyTitle">The Party</h2><p>Our heroes, as of the latest session.</p></div>
     <div class="grid" id="partyGrid"></div>
+  </div>
+</section>
+
+<!-- CALENDAR -->
+<section id="calendar">
+  <div class="wrap">
+    <div class="sec-head"><span id="hCal"></span><h2>Calendar</h2><p>Game nights and other happenings. Tap a day to see what's on, or add it to your own calendar.</p></div>
+    <div class="calwrap">
+      <div class="card calbox">
+        <div class="calnav"><button class="mini" id="calPrev" aria-label="Previous month">&#9664;</button><h3 id="calMonth"></h3><button class="mini" id="calNext" aria-label="Next month">&#9654;</button></div>
+        <div class="calgrid" id="calGrid"></div>
+        <p class="muted" style="margin:8px 0 0;font-size:16px"><span class="dot k-session"></span> Session &nbsp; <span class="dot k-event"></span> Other event</p>
+      </div>
+      <div><h3 id="calListTitle" style="margin-bottom:10px">Coming up</h3><div id="calList"></div></div>
+    </div>
   </div>
 </section>
 
@@ -161,18 +176,21 @@ function countdown(d){ const now = new Date(), day = 864e5;
   if (d < now && now - d < 4 * 3600e3) return 'Happening now!';
   if (d < now) return '';
   return n === 0 ? 'Tonight!' : n === 1 ? 'Tomorrow!' : `In ${n} days`; }
-function calLinks(d){
-  const end = new Date(d.getTime() + 3 * 3600e3), title = 'Copper & Curios: ' + (C.next.what || 'D&D'), where = C.next.where && C.next.where !== 'TBD' ? C.next.where : '';
-  const details = 'Critical Company D&D night. Job board and map: https://shroomygames.com/campaign/';
+function calLinks(d){ return calButtons(d, new Date(d.getTime() + 3 * 3600e3), 'Copper & Curios: ' + (C.next.what || 'D&D'), C.next.where, 'Critical Company D&D night.'); }
+function calButtons(d, end, title, where, note, allDay){
+  where = where && where !== 'TBD' ? where : '';
+  const details = (note ? note + ' ' : '') + 'Job board and map: https://shroomygames.com/campaign/';
+  const dayStamp = x => calStamp(x).slice(0, 8);
+  const st = allDay ? ';VALUE=DATE:' + dayStamp(d) : ':' + calStamp(d), en = allDay ? ';VALUE=DATE:' + dayStamp(new Date(d.getTime() + 864e5)) : ':' + calStamp(end);
   const esc2 = s => String(s).replace(/[\\,;]/g, m => '\\' + m).replace(/\n/g, '\\n');
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//shroomygames//copper-and-curios//EN', 'BEGIN:VEVENT',
-    'UID:cc-' + calStamp(d) + '@shroomygames.com', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
-    'DTSTART:' + calStamp(d), 'DTEND:' + calStamp(end), 'SUMMARY:' + esc2(title), where ? 'LOCATION:' + esc2(where) : '', 'DESCRIPTION:' + esc2(details),
-    'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc2(title), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
-  const g = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(title) + '&dates=' + calStamp(d) + '/' + calStamp(end)
+    'UID:cc-' + calStamp(d) + '-' + title.replace(/[^a-z0-9]/gi, '').slice(0, 20) + '@shroomygames.com', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
+    'DTSTART' + st, 'DTEND' + en, 'SUMMARY:' + esc2(title), where ? 'LOCATION:' + esc2(where) : '', 'DESCRIPTION:' + esc2(details),
+    allDay ? '' : 'BEGIN:VALARM', allDay ? '' : 'TRIGGER:-PT2H', allDay ? '' : 'ACTION:DISPLAY', allDay ? '' : 'DESCRIPTION:' + esc2(title), allDay ? '' : 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+  const g = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(title) + '&dates=' + (allDay ? dayStamp(d) + '/' + dayStamp(new Date(d.getTime() + 864e5)) : calStamp(d) + '/' + calStamp(end))
     + '&details=' + encodeURIComponent(details) + (where ? '&location=' + encodeURIComponent(where) : '');
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-    <a class="btn green small" href="data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}" download="copper-and-curios.ics">Add to my calendar</a>
+    <a class="btn green small" href="data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}" download="copper-and-curios-${dayStamp(d)}.ics">Add to my calendar</a>
     <a class="btn plank small" href="${g}" target="_blank" rel="noopener">Google Calendar</a></div>`; }
 function drawNext(){ const d = nextStart(), cd = d ? countdown(d) : '';
   $('#nextUp').innerHTML = `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
@@ -237,7 +255,7 @@ function openJob(id, refresh){
   if ($('#unvote')) $('#unvote').onclick = async () => { try { await window.BOARD.unvote(j.id); } catch (e) { $('#vmsg').textContent = 'That didn\'t work. Try again.'; } };
 }
 window.BOARD.setJobs = list => { JOBS = list; renderJobs(); };
-window.BOARD.setNext = n => { if (n) { C.next = { ...C.next, ...n }; drawNext(); } };
+window.BOARD.setNext = n => { if (n) { C.next = { ...C.next, ...n }; drawNext(); if (window.BOARD.setEvents) drawCal(); } };
 window.BOARD.setLive = on => { $('#liveTag').classList.toggle('hidden', !on); };
 document.querySelectorAll('.board-tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.board-tabs button').forEach(x => x.setAttribute('aria-pressed', x === b));
@@ -300,6 +318,54 @@ const classes = [
 $('#classes').innerHTML = classes.map(([i, n, t]) => `<div class="card pc"><div class="por">${icon(i)}</div><div><h3>${n}</h3><p style="margin:4px 0 0">${t}</p></div></div>`).join('');
 $('#rules').innerHTML = C.rules.map(r => `<li>${esc(r)}</li>`).join('');
 
+// ----- calendar -----
+// Events: { id, date: "YYYY-MM-DD", time: "18:00" (optional), title, where, note, kind: "session" | "event" }
+$('#hCal').innerHTML = icon('sands-of-time');
+let EVENTS = (C.events || []).slice(), CAL_VIEW = null, CAL_DAY = null;
+const pad2 = n => String(n).padStart(2, '0');
+const dayKey = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+function allEvents(){
+  const list = EVENTS.filter(e => e && /^\d{4}-\d\d-\d\d$/.test(e.date || ''));
+  const d = nextStart(); // the Next session banner always shows on the calendar
+  if (d && !list.some(e => e.date === dayKey(d) && e.kind === 'session'))
+    list.push({ id: 'next', date: dayKey(d), time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}`, title: C.next.what || 'Next session', where: C.next.where, kind: 'session' });
+  return list.sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+}
+function evStart(e){ return new Date(e.date + 'T' + (e.time || '00:00')); }
+function timeText(t){ if (!t) return 'All day'; const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + (m ? ':' + pad2(m) : '') + (h < 12 ? 'am' : 'pm'); }
+function evCard(e){
+  const d = evStart(e), past = (e.time ? d : new Date(d.getTime() + 864e5)) < new Date();
+  const dateText = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return `<div class="card calev k-${e.kind === 'session' ? 'session' : 'event'}${past ? ' past' : ''}">
+    <h4>${esc(e.title)}</h4><div class="muted">${esc(dateText)} · ${esc(timeText(e.time))}${e.where && e.where !== 'TBD' ? ' · ' + esc(e.where) : ''}</div>
+    ${e.note ? `<p style="margin:6px 0 0">${esc(e.note)}</p>` : ''}
+    ${past ? '' : calButtons(d, new Date(d.getTime() + 3 * 3600e3), (e.kind === 'session' ? 'Copper & Curios: ' : '') + e.title, e.where, e.note, !e.time)}</div>`;
+}
+function drawCal(){
+  const evs = allEvents(), today = new Date();
+  if (!CAL_VIEW) { const up = evs.find(e => evStart(e) >= new Date(today.getFullYear(), today.getMonth(), today.getDate())); const b = up ? evStart(up) : today; CAL_VIEW = new Date(b.getFullYear(), b.getMonth(), 1); }
+  const y = CAL_VIEW.getFullYear(), m = CAL_VIEW.getMonth(), first = new Date(y, m, 1), days = new Date(y, m + 1, 0).getDate();
+  $('#calMonth').textContent = first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const byDay = {}; evs.forEach(e => (byDay[e.date] = byDay[e.date] || []).push(e));
+  let h = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(w => `<div class="calwd">${w}</div>`).join('') + '<div></div>'.repeat(first.getDay());
+  for (let i = 1; i <= days; i++) {
+    const k = `${y}-${pad2(m + 1)}-${pad2(i)}`, list = byDay[k] || [];
+    const cls = ['calday', k === dayKey(today) ? 'today' : '', k === CAL_DAY ? 'sel' : '', list.length ? 'has' : ''].join(' ');
+    h += `<button class="${cls}" data-day="${k}" aria-label="${k}${list.length ? ', ' + list.length + ' event' + (list.length > 1 ? 's' : '') : ''}">${i}${list.length ? `<span class="dots">${list.slice(0, 3).map(e => `<span class="dot k-${e.kind === 'session' ? 'session' : 'event'}"></span>`).join('')}</span>` : ''}</button>`;
+  }
+  $('#calGrid').innerHTML = h;
+  $('#calGrid').querySelectorAll('.calday').forEach(b => b.onclick = () => { CAL_DAY = CAL_DAY === b.dataset.day ? null : b.dataset.day; drawCal(); });
+  let show, title;
+  if (CAL_DAY) { show = byDay[CAL_DAY] || []; title = new Date(CAL_DAY + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); }
+  else { const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()); show = evs.filter(e => evStart(e) >= start).slice(0, 6); title = 'Coming up'; }
+  $('#calListTitle').textContent = title;
+  $('#calList').innerHTML = show.length ? show.map(evCard).join('') : `<p class="muted">${CAL_DAY ? 'Nothing on this day.' : 'Nothing scheduled yet. Check back soon!'}</p>`;
+}
+$('#calPrev').onclick = () => { CAL_VIEW = new Date(CAL_VIEW.getFullYear(), CAL_VIEW.getMonth() - 1, 1); CAL_DAY = null; drawCal(); };
+$('#calNext').onclick = () => { CAL_VIEW = new Date(CAL_VIEW.getFullYear(), CAL_VIEW.getMonth() + 1, 1); CAL_DAY = null; drawCal(); };
+drawCal();
+window.BOARD.setEvents = list => { if (Array.isArray(list)) { EVENTS = list; drawCal(); } };
+
 // ----- log -----
 $('#logList').innerHTML = C.log.map(l => `<div class="card entry"><h3>Session ${l.n}: ${esc(l.title)}<small>${esc(l.date)}</small></h3><p style="margin:6px 0 0">${esc(l.text)}</p></div>`).join('');
 </script>
@@ -318,6 +384,7 @@ try {
     window.BOARD.setLive(true);
   }, () => {});
   L.onSnapshot(L.doc(L.db, 'meta', 'next'), d => { if (d.exists()) window.BOARD.setNext(d.data()); }, () => {});
+  L.onSnapshot(L.doc(L.db, 'meta', 'calendar'), d => { if (d.exists()) window.BOARD.setEvents(d.data().events); }, () => {});
 } catch (e) { console.warn('Live board unavailable, showing the saved notices.', e); }
 </script>
 </body>

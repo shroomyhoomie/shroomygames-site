@@ -13,6 +13,11 @@ window.CAMPAIGN = {
   // Next session: update after each session. at = local date and time "YYYY-MM-DDTHH:MM" (powers the countdown and calendar buttons)
   next: { at: "2026-12-05T18:00", when: "Saturday, December 5 at 6pm", where: "TBD", what: "Session Zero: make characters, then your first evening in Hollowmere" },
 
+  // ---------- CALENDAR ----------
+  // Saved copy of the calendar. The DM kit's Live Board edits the live one. date "YYYY-MM-DD", time "18:00" (leave out for all day)
+  // kind: "session" or "event". The Next session banner shows on the calendar on its own.
+  events: [],
+
   // ---------- JOB BOARD ----------
   // status: "open", "taken" or "done". danger: 0 (safe) to 3 (deadly-ish)
   // wizard: true gives it the purple paper
