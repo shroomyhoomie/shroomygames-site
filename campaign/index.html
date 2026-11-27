@@ -60,7 +60,9 @@
 <!-- PARTY -->
 <section id="party" class="alt">
   <div class="wrap">
-    <div class="sec-head"><span id="hParty"></span><h2 id="partyTitle">The Party</h2><p>Our heroes, as of the latest session.</p></div>
+    <div class="sec-head"><span id="hParty"></span><h2 id="partyTitle">The Party</h2><p>Our heroes, live. Players: claim your hero and import your D&amp;D Beyond sheet so everyone sees your stats.</p></div>
+    <div id="heroBar" class="hidden" style="margin-bottom:16px"><button class="btn green" id="claimBtn"></button></div>
+    <div id="heroEdit"></div>
     <div class="grid" id="partyGrid"></div>
   </div>
 </section>
@@ -264,10 +266,95 @@ document.querySelectorAll('.board-tabs button').forEach(b => b.onclick = () => {
 renderJobs();
 
 // ----- party -----
-$('#partyGrid').innerHTML = C.party.map(p => `<div class="card pc">
+// ----- party: live hero cards. Players claim one, import their D&D Beyond PDF, and tap HP up/down -----
+let HEROES = null, HERO_ON = false, EDITING = false, HERO_MSG = '';
+const CLASS_ICON = { fighter: 'mailed-fist', barbarian: 'crossed-swords', rogue: 'hood', cleric: 'shield', paladin: 'shield', ranger: 'treasure-map',
+  wizard: 'wizard-staff', sorcerer: 'wizard-staff', warlock: 'wizard-staff', druid: 'mushroom-gills', bard: 'open-book', monk: 'mailed-fist', artificer: 'key' };
+const heroIcon = cls => { const m = String(cls || '').toLowerCase().match(/[a-z]+/g) || []; for (const w of m) if (CLASS_ICON[w]) return CLASS_ICON[w]; return 'hood'; };
+const myHero = () => HEROES && window.BOARD.uid ? HEROES.find(h => h.id === window.BOARD.uid) : null;
+function heroCard(h){
+  const mine = HERO_ON && h.id === window.BOARD.uid, max = +h.maxHp || 0, hp = Math.max(0, Math.min(h.hp === '' || h.hp == null ? max : +h.hp, max || 999));
+  const pct = max ? Math.round(hp / max * 100) : 0, low = pct <= 25 ? ' low' : pct <= 50 ? ' mid' : '';
+  return `<div class="card pc herocard">
+  <div class="por">${icon(heroIcon(h.cls))}</div>
+  <div style="flex:1"><h3>${esc(h.name || 'Unnamed hero')}</h3>
+  <div>${h.species ? `<span class="tag">${esc(h.species)}</span>` : ''}<span class="tag">${esc(h.cls || '?')}</span>${h.level ? `<span class="tag">Level ${esc(h.level)}</span>` : ''}</div>
+  <div class="hstats"><span title="Armor Class"><b>AC</b> ${esc(h.ac || '?')}</span><span title="Passive Perception"><b>PP</b> ${esc(h.pp || '?')}</span>${h.init ? `<span title="Initiative"><b>Init</b> ${esc(h.init)}</span>` : ''}</div>
+  ${max ? `<div class="hpbar${low}" aria-label="Hit points ${hp} of ${max}"><span style="width:${pct}%"></span><em>HP ${hp} / ${max}</em></div>` : ''}
+  ${mine && max ? `<div class="row2" style="margin-top:6px"><button class="btn small hpbtn" data-hp="-5">−5</button><button class="btn small hpbtn" data-hp="-1">−1</button><button class="btn small hpbtn" data-hp="1">+1</button><button class="btn small hpbtn" data-hp="5">+5</button><button class="btn small hpbtn" data-hp="full">Full</button></div>` : ''}
+  ${h.blurb ? `<p style="margin:6px 0 0">${esc(h.blurb)}</p>` : ''}
+  <div class="muted" style="font-size:16px">${h.player ? 'Played by ' + esc(h.player) : ''}${h.link ? `${h.player ? ' · ' : ''}<a href="${esc(h.link)}" target="_blank" rel="noopener">Character sheet</a>` : ''}</div></div></div>`;
+}
+function drawParty(){
+  const live = HEROES && HEROES.length;
+  $('#partyGrid').innerHTML = live ? HEROES.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(heroCard).join('')
+    : C.party.map(p => `<div class="card pc">
   <div class="por">${icon(p.icon || 'hood')}</div>
   <div><h3>${esc(p.name)}</h3><div><span class="tag">${esc(p.race)}</span><span class="tag">${esc(p.cls)}</span><span class="tag">Level ${p.level}</span></div>
   <p style="margin:6px 0 0">${esc(p.blurb)}</p>${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">Character sheet</a>` : ''}</div></div>`).join('');
+  $('#heroBar').classList.toggle('hidden', !HERO_ON || EDITING);
+  $('#claimBtn').innerHTML = icon('shield') + (myHero() ? ' Update my hero' : ' Claim your hero');
+  document.querySelectorAll('[data-hp]').forEach(b => b.onclick = () => {
+    const h = myHero(); if (!h) return; const max = +h.maxHp || 0, cur = h.hp === '' || h.hp == null ? max : +h.hp;
+    const v = b.dataset.hp === 'full' ? max : Math.max(0, Math.min(max, cur + +b.dataset.hp));
+    h.hp = v; drawParty(); window.BOARD.setHeroHp(v).catch(() => {});
+  });
+}
+const HFIELDS = [['name', 'Character name', 'Eden'], ['player', 'Your name', 'Jess'], ['species', 'Species', 'High Elf'], ['cls', 'Class (and subclass)', 'Rogue 1'],
+  ['level', 'Level', '1', 'number'], ['ac', 'Armor Class (AC)', '15', 'number'], ['maxHp', 'Max HP', '12', 'number'], ['hp', 'Current HP', '12', 'number'],
+  ['pp', 'Passive Perception', '13', 'number'], ['init', 'Initiative', '+2'], ['link', 'D&D Beyond share link', 'https://www.dndbeyond.com/characters/...'], ['blurb', 'One line about your hero', 'A nervous halfling who loves pie']];
+function drawHeroEdit(prefill){
+  if (!EDITING) { $('#heroEdit').innerHTML = ''; return; }
+  const h = prefill || myHero() || {};
+  $('#heroEdit').innerHTML = `<div class="card" style="margin-bottom:18px"><h3>${myHero() ? 'Update your hero' : 'Claim your hero'}</h3>
+    <div class="voteBox"><b>Fastest way: import from D&amp;D Beyond</b>
+      <p style="margin:4px 0">On D&amp;D Beyond, open your character, tap <b>Manage</b> by its name, then <b>Export to PDF</b> and download it. Then pick that file here:</p>
+      <input type="file" id="pdfIn" accept="application/pdf,.pdf" style="font:16px Gaegu;max-width:100%">
+      <div id="pdfMsg" style="margin-top:6px"></div></div>
+    <div class="hgrid">${HFIELDS.map(([k, l, ph, t]) => `<label>${l}<input id="hf_${k}" type="${t || 'text'}" ${t === 'number' ? 'inputmode="numeric" min="0" max="999"' : 'maxlength="' + (k === 'link' ? 200 : k === 'blurb' ? 140 : 40) + '"'} value="${esc(h[k] ?? '')}" placeholder="${esc(ph)}"></label>`).join('')}</div>
+    <div class="row2" style="margin-top:10px"><button class="btn green small" id="heroSave">Save my hero</button><button class="btn plank small" id="heroCancel">Cancel</button></div>
+    ${HERO_MSG ? `<div style="margin-top:6px">${esc(HERO_MSG)}</div>` : ''}</div>`;
+  $('#heroCancel').onclick = () => { EDITING = false; HERO_MSG = ''; drawHeroEdit(); drawParty(); };
+  $('#heroSave').onclick = async () => {
+    const d = {}; HFIELDS.forEach(([k, , , t]) => { const v = $('#hf_' + k).value.trim(); d[k] = t === 'number' ? (v === '' ? '' : Math.max(0, Math.min(999, Math.round(+v) || 0))) : v; });
+    if (!d.name) { HERO_MSG = 'Give your hero a name first.'; drawHeroEdit(d); return; }
+    if (d.link && !/^https:\/\/(www\.)?(dndbeyond\.com|ddb\.ac)\//.test(d.link)) { HERO_MSG = 'The sheet link should start with https://www.dndbeyond.com/'; drawHeroEdit(d); return; }
+    if (d.hp === '' && d.maxHp !== '') d.hp = d.maxHp;
+    try { localStorage.setItem('cc_name', d.player || myName()); } catch (e) {}
+    try { await window.BOARD.saveHero(d); EDITING = false; HERO_MSG = ''; drawHeroEdit(); drawParty(); location.hash = '#party'; }
+    catch (e) { HERO_MSG = "Couldn't save. Ask the DM to switch hero cards on."; drawHeroEdit(d); }
+  };
+  $('#pdfIn').onchange = async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    $('#pdfMsg').textContent = 'Reading your sheet...';
+    try { const got = await readDdbPdf(f); const cur = {}; HFIELDS.forEach(([k]) => cur[k] = $('#hf_' + k).value);
+      const merged = { ...cur, ...Object.fromEntries(Object.entries(got).filter(([, v]) => v !== '' && v != null)) };
+      if (cur.hp === '' || myHero() == null) merged.hp = merged.maxHp;
+      drawHeroEdit(merged); $('#pdfMsg').innerHTML = '<b>Got it!</b> Check everything below, add your share link and a one-line blurb, then save.'; }
+    catch (err) { $('#pdfMsg').textContent = err.message || "That file didn't look like a D&D Beyond sheet. You can type your stats in instead."; }
+  };
+}
+// Reads the form fields of a D&D Beyond "Export to PDF" sheet, right here in the browser. Nothing is uploaded.
+async function readDdbPdf(file){
+  if (file.size > 15e6) throw new Error('That file is too big to be a character sheet.');
+  const pdfjs = await import('./vendor/pdfjs/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.min.mjs', location.href).href;
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const F = {};
+  for (let i = 1; i <= Math.min(doc.numPages, 2); i++) {
+    (await (await doc.getPage(i)).getAnnotations()).forEach(a => { const k = (a.fieldName || '').trim(); if (k && a.fieldValue != null && a.fieldValue !== '' && !(k in F)) F[k] = String(a.fieldValue).trim(); });
+  }
+  if (!F.CharacterName && !F['CLASS  LEVEL']) throw new Error("That file didn't look like a D&D Beyond sheet. You can type your stats in instead.");
+  const num = v => { const m = String(v || '').match(/-?\d+/); return m ? +m[0] : ''; };
+  const clsText = F['CLASS  LEVEL'] || F['CLASS LEVEL'] || '';
+  const lvl = (clsText.match(/\d+/g) || []).reduce((a, b) => a + +b, 0);
+  return { name: F.CharacterName || '', player: F['PLAYER NAME'] || '', species: F.RACE || F.SPECIES || '', cls: (clsText.includes('/') ? clsText : clsText.replace(/\s+\d+/g, '')).trim().slice(0, 40),
+    level: lvl || '', ac: num(F.AC), maxHp: num(F.MaxHP), pp: num(F.Passive1), init: (F.Init || '').slice(0, 5) };
+}
+$('#claimBtn').onclick = () => { EDITING = true; HERO_MSG = ''; drawHeroEdit(); drawParty(); $('#heroEdit').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+window.BOARD.heroesReady = () => { HERO_ON = true; drawParty(); };
+window.BOARD.setHeroes = list => { HEROES = list; drawParty(); };
+drawParty();
 
 // ----- map (hand-drawn in SVG) -----
 const pins = C.places.map(p => `<g class="pin" tabindex="0" role="button" aria-label="${esc(p.name)}" data-id="${p.id}">
@@ -420,6 +507,11 @@ try {
   if (uid()) {
     window.BOARD.uid = window.BOARD.uid || uid();
     window.BOARD.setAvail = (name, days) => L.setDoc(L.doc(L.db, 'availability', uid()), { name, days });
+    window.BOARD.saveHero = d => L.setDoc(L.doc(L.db, 'heroes', uid()), { ...d, updated: new Date().toISOString() });
+    window.BOARD.setHeroHp = v => L.updateDoc(L.doc(L.db, 'heroes', uid()), { hp: v, updated: new Date().toISOString() });
+    L.onSnapshot(L.collection(L.db, 'heroes'), snap => {
+      window.BOARD.setHeroes(snap.docs.map(d => ({ id: d.id, ...d.data() }))); window.BOARD.heroesReady();
+    }, () => {});
     L.onSnapshot(L.collection(L.db, 'availability'), snap => {
       const m = {}; snap.docs.forEach(d => m[d.id] = d.data()); window.BOARD.setAvailAll(m); window.BOARD.availReady();
     }, () => {});
