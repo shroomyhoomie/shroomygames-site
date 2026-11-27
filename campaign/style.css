@@ -162,3 +162,16 @@ b.av-yes{color:var(--leaf2)}b.av-maybe{color:var(--copper)}b.av-no{color:var(--r
 .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px 12px;margin-top:12px}
 .hgrid label{display:flex;flex-direction:column;font:16px Jua,sans-serif}
 .hgrid input{font:18px Gaegu;font-weight:700;border:3px solid var(--wood2);border-radius:10px;padding:6px 10px;background:#fffaf0;color:var(--ink);min-height:44px}
+.trks{margin-top:8px;display:grid;gap:4px}
+.trk{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:17px}
+.trk small{font-size:14px}
+.pips{display:flex;gap:4px;flex-wrap:wrap}
+.pip{width:26px;height:26px;border-radius:50%;border:3px solid var(--plum);background:transparent;padding:0;cursor:pointer}
+.pip.on{background:var(--plum)}
+.pips.ro .pip{cursor:default;pointer-events:none;width:18px;height:18px}
+.restbtn{background:var(--night2);color:var(--gold);border:3px solid var(--wood2);border-radius:10px}
+.restbtn.long{background:var(--plum);color:var(--cream)}
+.toast{margin-top:6px;background:var(--gold);border:2px solid var(--wood2);border-radius:10px;padding:4px 10px;font-size:17px}
+.spells{margin-top:8px;font-size:17px}.spells summary{cursor:pointer;font:17px Jua,sans-serif;color:var(--plum)}
+.hsel{font:16px Gaegu;font-weight:700;border:3px solid var(--wood2);border-radius:10px;background:#fffaf0;min-height:44px;padding:0 6px}
+.resrow input{font:18px Gaegu;font-weight:700;border:3px solid var(--wood2);border-radius:10px;padding:6px 10px;background:#fffaf0;color:var(--ink);min-height:44px}

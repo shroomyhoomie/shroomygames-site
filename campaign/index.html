@@ -272,6 +272,23 @@ const CLASS_ICON = { fighter: 'mailed-fist', barbarian: 'crossed-swords', rogue:
   wizard: 'wizard-staff', sorcerer: 'wizard-staff', warlock: 'wizard-staff', druid: 'mushroom-gills', bard: 'open-book', monk: 'mailed-fist', artificer: 'key' };
 const heroIcon = cls => { const m = String(cls || '').toLowerCase().match(/[a-z]+/g) || []; for (const w of m) if (CLASS_ICON[w]) return CLASS_ICON[w]; return 'hood'; };
 const myHero = () => HEROES && window.BOARD.uid ? HEROES.find(h => h.id === window.BOARD.uid) : null;
+// Hit dice "3d8 + 2d6" -> [8,8,8,6,6], biggest first (spent biggest first)
+const hdList = t => (String(t || '').match(/\d+d\d+/g) || []).flatMap(x => { const [n, d] = x.split('d').map(Number); return Array(Math.min(n, 20)).fill(d); }).sort((a, b) => b - a);
+const ORD = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'];
+function pips(total, used, kind, idx){ let h = ''; for (let i = 0; i < total; i++) h += `<button class="pip${i < total - used ? ' on' : ''}" data-pip="${kind}" data-i="${idx}" data-n="${i}" aria-label="${kind} ${i + 1}"></button>`; return h; }
+function magicBlock(h, mine){
+  const slots = Array.isArray(h.slots) ? h.slots : [], used = Array.isArray(h.slotsUsed) ? h.slotsUsed : [];
+  const dice = hdList(h.hd), res = Array.isArray(h.res) ? h.res : [];
+  let rows = '';
+  slots.forEach((n, i) => { if (n) rows += `<div class="trk"><span>${ORD[i]} slots</span><span class="pips${mine ? '' : ' ro'}">${pips(n, Math.min(+used[i] || 0, n), 'slot', i)}</span></div>`; });
+  res.forEach((r, i) => { if (r && r.n && +r.max) rows += `<div class="trk"><span>${esc(r.n)} <small class="muted">${r.r === 's' ? 'short rest' : 'long rest'}</small></span><span class="pips${mine ? '' : ' ro'}">${pips(Math.min(+r.max, 20), Math.min(+r.used || 0, +r.max), 'res', i)}</span></div>`; });
+  if (dice.length) rows += `<div class="trk"><span>Hit dice <small class="muted">${esc(h.hd)}</small></span><span class="pips ro">${pips(dice.length, Math.min(+h.hdUsed || 0, dice.length), 'hd', 0)}</span></div>`;
+  const sp = Array.isArray(h.spells) ? h.spells : [];
+  const spellList = sp.length ? `<details class="spells"><summary>Spells (${sp.length})</summary>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(l => { const n = sp.filter(x => x[0] === l).map(x => esc(x[1])); return n.length ? `<div><b>${l ? ORD[l - 1] : 'Cantrips'}:</b> ${n.join(', ')}</div>` : ''; }).join('')}</details>` : '';
+  const rest = mine ? `<div class="row2" style="margin-top:8px">${dice.length ? `<button class="btn small hpbtn" data-rest="hd">Spend a hit die</button>` : ''}<button class="btn small restbtn" data-rest="short">Short rest</button><button class="btn small restbtn long" data-rest="long">Long rest</button></div>${HERO_TOAST ? `<div class="toast">${esc(HERO_TOAST)}</div>` : ''}` : '';
+  return rows || rest ? `<div class="trks">${rows}</div>${rest}${spellList}` : spellList;
+}
+let HERO_TOAST = '';
 function heroCard(h){
   const mine = HERO_ON && h.id === window.BOARD.uid, max = +h.maxHp || 0, hp = Math.max(0, Math.min(h.hp === '' || h.hp == null ? max : +h.hp, max || 999));
   const pct = max ? Math.round(hp / max * 100) : 0, low = pct <= 25 ? ' low' : pct <= 50 ? ' mid' : '';
@@ -282,6 +299,7 @@ function heroCard(h){
   <div class="hstats"><span title="Armor Class"><b>AC</b> ${esc(h.ac || '?')}</span><span title="Passive Perception"><b>PP</b> ${esc(h.pp || '?')}</span>${h.init ? `<span title="Initiative"><b>Init</b> ${esc(h.init)}</span>` : ''}</div>
   ${max ? `<div class="hpbar${low}" aria-label="Hit points ${hp} of ${max}"><span style="width:${pct}%"></span><em>HP ${hp} / ${max}</em></div>` : ''}
   ${mine && max ? `<div class="row2" style="margin-top:6px"><button class="btn small hpbtn" data-hp="-5">−5</button><button class="btn small hpbtn" data-hp="-1">−1</button><button class="btn small hpbtn" data-hp="1">+1</button><button class="btn small hpbtn" data-hp="5">+5</button><button class="btn small hpbtn" data-hp="full">Full</button></div>` : ''}
+  ${magicBlock(h, mine)}
   ${h.blurb ? `<p style="margin:6px 0 0">${esc(h.blurb)}</p>` : ''}
   <div class="muted" style="font-size:16px">${h.player ? 'Played by ' + esc(h.player) : ''}${h.link ? `${h.player ? ' · ' : ''}<a href="${esc(h.link)}" target="_blank" rel="noopener">Character sheet</a>` : ''}</div></div></div>`;
 }
@@ -297,7 +315,31 @@ function drawParty(){
   document.querySelectorAll('[data-hp]').forEach(b => b.onclick = () => {
     const h = myHero(); if (!h) return; const max = +h.maxHp || 0, cur = h.hp === '' || h.hp == null ? max : +h.hp;
     const v = b.dataset.hp === 'full' ? max : Math.max(0, Math.min(max, cur + +b.dataset.hp));
-    h.hp = v; drawParty(); window.BOARD.setHeroHp(v).catch(() => {});
+    h.hp = v; drawParty(); window.BOARD.patchHero({ hp: v }).catch(() => {});
+  });
+  const patch = (h, d, toast) => { Object.assign(h, d); HERO_TOAST = toast || ''; drawParty(); window.BOARD.patchHero(d).catch(() => { HERO_TOAST = "Couldn't save that, check your connection."; drawParty(); }); };
+  document.querySelectorAll('.herocard .pips:not(.ro) [data-pip]').forEach(b => b.onclick = () => {
+    const h = myHero(); if (!h) return; const i = +b.dataset.i, n = +b.dataset.n, on = b.classList.contains('on');
+    if (b.dataset.pip === 'slot') { const u = (h.slotsUsed || [0, 0, 0, 0, 0, 0, 0, 0, 0]).slice(); u[i] = Math.max(0, (+u[i] || 0) + (on ? 1 : -1)); patch(h, { slotsUsed: u }); }
+    if (b.dataset.pip === 'res') { const r = (h.res || []).map(x => ({ ...x })); r[i].used = Math.max(0, (+r[i].used || 0) + (on ? 1 : -1)); patch(h, { res: r }); }
+  });
+  document.querySelectorAll('[data-rest]').forEach(b => b.onclick = () => {
+    const h = myHero(); if (!h) return; const max = +h.maxHp || 0, cur = h.hp === '' || h.hp == null ? max : +h.hp, dice = hdList(h.hd), used = Math.min(+h.hdUsed || 0, dice.length);
+    if (b.dataset.rest === 'hd') {
+      if (used >= dice.length) { HERO_TOAST = 'No hit dice left. A long rest gets some back.'; drawParty(); return; }
+      if (cur >= max) { HERO_TOAST = "You're already at full HP."; drawParty(); return; }
+      const die = dice[used], roll = 1 + Math.floor(Math.random() * die), con = +h.conMod || 0, heal = Math.max(0, roll + con);
+      patch(h, { hdUsed: used + 1, hp: Math.min(max, cur + heal) }, `Rolled d${die}: ${roll}${con ? (con > 0 ? ' + ' : ' − ') + Math.abs(con) : ''} = ${heal} HP back`);
+    }
+    if (b.dataset.rest === 'short') {
+      const r = (h.res || []).map(x => x.r === 's' ? { ...x, used: 0 } : { ...x });
+      patch(h, { res: r }, 'Short rest done. Short-rest abilities are back. Spend hit dice to heal.');
+    }
+    if (b.dataset.rest === 'long') {
+      if (!confirm('Take a long rest? This restores HP, spell slots and abilities.')) return;
+      const r = (h.res || []).map(x => ({ ...x, used: 0 })), back = Math.max(1, Math.floor(dice.length / 2));
+      patch(h, { hp: max, slotsUsed: [0, 0, 0, 0, 0, 0, 0, 0, 0], res: r, hdUsed: Math.max(0, used - back) }, `Long rest done. Full HP, slots and abilities back${used ? `, and ${Math.min(back, used)} hit ${Math.min(back, used) === 1 ? 'die' : 'dice'}` : ''}.`);
+    }
   });
 }
 const HFIELDS = [['name', 'Character name', 'Eden'], ['player', 'Your name', 'Jess'], ['species', 'Species', 'High Elf'], ['cls', 'Class (and subclass)', 'Rogue 1'],
@@ -312,14 +354,30 @@ function drawHeroEdit(prefill){
       <input type="file" id="pdfIn" accept="application/pdf,.pdf" style="font:16px Gaegu;max-width:100%">
       <div id="pdfMsg" style="margin-top:6px"></div></div>
     <div class="hgrid">${HFIELDS.map(([k, l, ph, t]) => `<label>${l}<input id="hf_${k}" type="${t || 'text'}" ${t === 'number' ? 'inputmode="numeric" min="0" max="999"' : 'maxlength="' + (k === 'link' ? 200 : k === 'blurb' ? 140 : 40) + '"'} value="${esc(h[k] ?? '')}" placeholder="${esc(ph)}"></label>`).join('')}</div>
+    <h4 style="margin-top:14px">Spell slots, hit dice and abilities</h4>
+    <p class="muted" style="margin:2px 0 6px;font-size:16px">The PDF fills slots and hit dice in. Add abilities like Rage, Second Wind, Channel Divinity or Bardic Inspiration yourself.</p>
+    <div class="hgrid"><label>Hit dice<input id="hf_hd" maxlength="40" value="${esc(h.hd || '')}" placeholder="1d10"></label><label>CON modifier<input id="hf_conMod" type="number" min="-5" max="10" value="${esc(h.conMod ?? '')}" placeholder="2"></label>
+      ${ORD.slice(0, 5).map((o, i) => `<label>${o} level slots<input id="hf_slot${i}" type="number" min="0" max="9" inputmode="numeric" value="${esc((h.slots || [])[i] || '')}" placeholder="0"></label>`).join('')}</div>
+    <div id="resRows" style="margin-top:8px">${(h.res || []).map(r => resRow(r)).join('')}</div>
+    <button class="btn plank small" id="addRes" style="margin-top:6px">+ Add an ability tracker</button>
     <div class="row2" style="margin-top:10px"><button class="btn green small" id="heroSave">Save my hero</button><button class="btn plank small" id="heroCancel">Cancel</button></div>
     ${HERO_MSG ? `<div style="margin-top:6px">${esc(HERO_MSG)}</div>` : ''}</div>`;
+  $('#addRes').onclick = () => { if (document.querySelectorAll('.resrow').length < 8) $('#resRows').insertAdjacentHTML('beforeend', resRow({})); wireResRows(); };
+  wireResRows();
   $('#heroCancel').onclick = () => { EDITING = false; HERO_MSG = ''; drawHeroEdit(); drawParty(); };
   $('#heroSave').onclick = async () => {
     const d = {}; HFIELDS.forEach(([k, , , t]) => { const v = $('#hf_' + k).value.trim(); d[k] = t === 'number' ? (v === '' ? '' : Math.max(0, Math.min(999, Math.round(+v) || 0))) : v; });
     if (!d.name) { HERO_MSG = 'Give your hero a name first.'; drawHeroEdit(d); return; }
     if (d.link && !/^https:\/\/(www\.)?(dndbeyond\.com|ddb\.ac)\//.test(d.link)) { HERO_MSG = 'The sheet link should start with https://www.dndbeyond.com/'; drawHeroEdit(d); return; }
     if (d.hp === '' && d.maxHp !== '') d.hp = d.maxHp;
+    const old = myHero() || {};
+    d.hd = $('#hf_hd').value.trim().slice(0, 40); d.conMod = Math.max(-5, Math.min(10, parseInt($('#hf_conMod').value, 10) || 0));
+    d.slots = ORD.map((o, i) => i < 5 ? Math.max(0, Math.min(9, +($('#hf_slot' + i).value) || 0)) : ((h.slots || [])[i] || 0));
+    d.slotsUsed = (old.slotsUsed || [0, 0, 0, 0, 0, 0, 0, 0, 0]).map((u, i) => Math.min(+u || 0, d.slots[i]));
+    d.hdUsed = Math.min(+old.hdUsed || 0, hdList(d.hd).length);
+    d.res = [...document.querySelectorAll('.resrow')].map(row => { const n = row.querySelector('[data-r=n]').value.trim().slice(0, 30), max = Math.max(0, Math.min(20, +row.querySelector('[data-r=max]').value || 0));
+      const prev = (old.res || []).find(x => x.n === n); return { n, max, r: row.querySelector('[data-r=r]').value === 's' ? 's' : 'l', used: Math.min(prev ? +prev.used || 0 : 0, max) }; }).filter(x => x.n && x.max);
+    d.spells = Array.isArray(h.spells) ? h.spells.slice(0, 60) : (old.spells || []);
     try { localStorage.setItem('cc_name', d.player || myName()); } catch (e) {}
     try { await window.BOARD.saveHero(d); EDITING = false; HERO_MSG = ''; drawHeroEdit(); drawParty(); location.hash = '#party'; }
     catch (e) { HERO_MSG = "Couldn't save. Ask the DM to switch hero cards on."; drawHeroEdit(d); }
@@ -328,28 +386,48 @@ function drawHeroEdit(prefill){
     const f = e.target.files && e.target.files[0]; if (!f) return;
     $('#pdfMsg').textContent = 'Reading your sheet...';
     try { const got = await readDdbPdf(f); const cur = {}; HFIELDS.forEach(([k]) => cur[k] = $('#hf_' + k).value);
-      const merged = { ...cur, ...Object.fromEntries(Object.entries(got).filter(([, v]) => v !== '' && v != null)) };
+      const keep = myHero() || {};
+      cur.hd = $('#hf_hd').value; cur.conMod = $('#hf_conMod').value; cur.slots = ORD.map((o, i) => i < 5 ? +($('#hf_slot' + i).value) || 0 : 0);
+      cur.res = [...document.querySelectorAll('.resrow')].map(row => ({ n: row.querySelector('[data-r=n]').value, max: row.querySelector('[data-r=max]').value, r: row.querySelector('[data-r=r]').value }));
+      const merged = { ...keep, ...cur, ...Object.fromEntries(Object.entries(got).filter(([, v]) => v !== '' && v != null)) };
       if (cur.hp === '' || myHero() == null) merged.hp = merged.maxHp;
       drawHeroEdit(merged); $('#pdfMsg').innerHTML = '<b>Got it!</b> Check everything below, add your share link and a one-line blurb, then save.'; }
     catch (err) { $('#pdfMsg').textContent = err.message || "That file didn't look like a D&D Beyond sheet. You can type your stats in instead."; }
   };
 }
+function resRow(r){ return `<div class="row2 resrow"><input data-r="n" maxlength="30" placeholder="Ability (e.g. Rage)" value="${esc(r.n || '')}" style="flex:2 1 140px">
+  <input data-r="max" type="number" min="1" max="20" inputmode="numeric" placeholder="Uses" value="${esc(r.max || '')}" style="flex:0 1 80px">
+  <select data-r="r" class="hsel"><option value="l"${r.r !== 's' ? ' selected' : ''}>Long rest</option><option value="s"${r.r === 's' ? ' selected' : ''}>Short rest</option></select>
+  <button class="btn plank small" data-rdel aria-label="Remove tracker">×</button></div>`; }
+function wireResRows(){ document.querySelectorAll('[data-rdel]').forEach(b => b.onclick = () => b.closest('.resrow').remove()); }
 // Reads the form fields of a D&D Beyond "Export to PDF" sheet, right here in the browser. Nothing is uploaded.
 async function readDdbPdf(file){
   if (file.size > 15e6) throw new Error('That file is too big to be a character sheet.');
   const pdfjs = await import('./vendor/pdfjs/pdf.min.mjs');
   pdfjs.GlobalWorkerOptions.workerSrc = new URL('vendor/pdfjs/pdf.worker.min.mjs', location.href).href;
   const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-  const F = {};
-  for (let i = 1; i <= Math.min(doc.numPages, 2); i++) {
-    (await (await doc.getPage(i)).getAnnotations()).forEach(a => { const k = (a.fieldName || '').trim(); if (k && a.fieldValue != null && a.fieldValue !== '' && !(k in F)) F[k] = String(a.fieldValue).trim(); });
+  const F = {}, ORDER = [];
+  for (let i = 1; i <= Math.min(doc.numPages, 8); i++) {
+    (await (await doc.getPage(i)).getAnnotations()).forEach(a => { const k = (a.fieldName || '').trim(); if (k && a.fieldValue != null && a.fieldValue !== '') { const v = String(a.fieldValue).trim(); ORDER.push([k, v]); if (!(k in F)) F[k] = v; } });
   }
   if (!F.CharacterName && !F['CLASS  LEVEL']) throw new Error("That file didn't look like a D&D Beyond sheet. You can type your stats in instead.");
   const num = v => { const m = String(v || '').match(/-?\d+/); return m ? +m[0] : ''; };
   const clsText = F['CLASS  LEVEL'] || F['CLASS LEVEL'] || '';
   const lvl = (clsText.match(/\d+/g) || []).reduce((a, b) => a + +b, 0);
   return { name: F.CharacterName || '', player: F['PLAYER NAME'] || '', species: F.RACE || F.SPECIES || '', cls: (clsText.includes('/') ? clsText : clsText.replace(/\s+\d+/g, '')).trim().slice(0, 40),
-    level: lvl || '', ac: num(F.AC), maxHp: num(F.MaxHP), pp: num(F.Passive1), init: (F.Init || '').slice(0, 5) };
+    level: lvl || '', ac: num(F.AC), maxHp: num(F.MaxHP), pp: num(F.Passive1), init: (F.Init || '').slice(0, 5), ...readMagic(ORDER, F) };
+}
+// Spell slots by level ("=== 1st LEVEL ===" + "3 Slots OOO"), spell names in page order, hit dice ("3d8 + 2d6") and CON modifier
+function readMagic(ORDER, F){
+  const slots = [0, 0, 0, 0, 0, 0, 0, 0, 0], spells = []; let lvl = null;
+  ORDER.forEach(([k, v]) => {
+    if (/^spellHeader\d+$/.test(k)) { lvl = /CANTRIP/i.test(v) ? 0 : (+((v.match(/(\d)(st|nd|rd|th)/i) || [])[1]) || null); }
+    else if (/^spellSlotHeader\d+$/.test(k) && lvl) { const n = +((v.match(/(\d+)\s*Slot/i) || [])[1]) || 0; if (n) slots[lvl - 1] = Math.min(n, 9); }
+    else if (/^spellName\d+$/.test(k) && lvl != null && spells.length < 60) spells.push([lvl, v.slice(0, 40)]);
+  });
+  const hd = (F.Total || '').match(/\d+d\d+/g) ? F.Total.slice(0, 40) : '';
+  const conMod = parseInt(F.CONmod || '', 10);
+  return { slots, spells, hd, conMod: isNaN(conMod) ? 0 : conMod };
 }
 $('#claimBtn').onclick = () => { EDITING = true; HERO_MSG = ''; drawHeroEdit(); drawParty(); $('#heroEdit').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 window.BOARD.heroesReady = () => { HERO_ON = true; drawParty(); };
@@ -508,7 +586,7 @@ try {
     window.BOARD.uid = window.BOARD.uid || uid();
     window.BOARD.setAvail = (name, days) => L.setDoc(L.doc(L.db, 'availability', uid()), { name, days });
     window.BOARD.saveHero = d => L.setDoc(L.doc(L.db, 'heroes', uid()), { ...d, updated: new Date().toISOString() });
-    window.BOARD.setHeroHp = v => L.updateDoc(L.doc(L.db, 'heroes', uid()), { hp: v, updated: new Date().toISOString() });
+    window.BOARD.patchHero = d => L.updateDoc(L.doc(L.db, 'heroes', uid()), { ...d, updated: new Date().toISOString() });
     L.onSnapshot(L.collection(L.db, 'heroes'), snap => {
       window.BOARD.setHeroes(snap.docs.map(d => ({ id: d.id, ...d.data() }))); window.BOARD.heroesReady();
     }, () => {});
